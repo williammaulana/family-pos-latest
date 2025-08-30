@@ -3,9 +3,9 @@ import mysql from "mysql2/promise"
 // MySQL connection configuration for InfinityFree
 const dbConfig = {
   host: process.env.DB_HOST || "sql208.infinityfree.com",
-  user: process.env.DB_USER || "",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "",
+  user: process.env.DB_USER || "if0_39825944",
+  password: process.env.DB_PASSWORD || "15Juli2001",
+  database: process.env.DB_NAME || "if0_39825944_family_store",
   port: Number.parseInt(process.env.DB_PORT || "3306"),
   ssl: false,
   connectTimeout: 60000,

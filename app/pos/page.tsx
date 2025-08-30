@@ -8,7 +8,6 @@ import { ProductGrid } from "@/components/pos/product-grid"
 import { ShoppingCart } from "@/components/pos/shopping-cart"
 import { CheckoutForm } from "@/components/pos/checkout-form"
 import { useToast } from "@/hooks/use-toast"
-import { createTransaction } from "@/lib/mysql-service"
 import type { Product, TransactionItem } from "@/types"
 
 export default function POSPage() {
@@ -110,21 +109,39 @@ export default function POSPage() {
 
       console.log("[v0] Transaction calculations", { subtotal, tax, total, change })
 
-      const transaction = await createTransaction({
-        customer_name: customerName || "Walk-in Customer",
-        total_amount: total,
-        tax_amount: tax,
-        payment_amount: amountPaid,
-        change_amount: change,
-        payment_method: paymentMethod, // Pastikan ini sesuai dengan constraint: tunai, kartu_debit, kartu_kredit, e_wallet
-        cashier_id: user.id,
-        items: cartItems.map((item) => ({
-          product_id: item.productId,
-          quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.subtotal,
-        })),
+      const response = await fetch("/api/transactions/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_name: customerName || "Walk-in Customer",
+          total_amount: total,
+          tax_amount: tax,
+          payment_amount: amountPaid,
+          change_amount: change,
+          payment_method: paymentMethod,
+          cashier_id: user.id,
+          items: cartItems.map((item) => ({
+            product_id: item.productId,
+            quantity: item.quantity,
+            unit_price: item.price,
+            total_price: item.subtotal,
+          })),
+        }),
       })
+
+      if (!response.ok) {
+        throw new Error("Failed to create transaction")
+      }
+
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.details || "Transaction failed")
+      }
+
+      const transaction = result.transaction
 
       console.log("[v0] Transaction created successfully", transaction)
 

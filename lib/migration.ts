@@ -1,0 +1,201 @@
+import { executeQuery } from "./mysql"
+
+interface Migration {
+  id: number
+  name: string
+  sql: string
+  executed_at?: Date
+}
+
+const migrations: Migration[] = [
+  {
+    id: 1,
+    name: "create_initial_tables",
+    sql: `
+      -- Updated to use VARCHAR(36) for UUID compatibility with InfinityFree
+      -- Create users table
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role ENUM('super_admin', 'admin', 'kasir') NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+
+      -- Create categories table
+      CREATE TABLE IF NOT EXISTS categories (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Create products table
+      CREATE TABLE IF NOT EXISTS products (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        name VARCHAR(255) NOT NULL,
+        category_id VARCHAR(36),
+        price DECIMAL(12,2) NOT NULL,
+        stock INTEGER NOT NULL DEFAULT 0,
+        min_stock INTEGER NOT NULL DEFAULT 10,
+        barcode VARCHAR(255) UNIQUE,
+        image_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+      );
+
+      -- Create transactions table
+      CREATE TABLE IF NOT EXISTS transactions (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        transaction_code VARCHAR(20) UNIQUE NOT NULL,
+        customer_name VARCHAR(255),
+        customer_phone VARCHAR(20),
+        total_amount DECIMAL(12,2) NOT NULL,
+        tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        payment_method ENUM('tunai', 'kartu_debit', 'kartu_kredit', 'e_wallet') NOT NULL,
+        payment_amount DECIMAL(12,2) NOT NULL,
+        change_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+        status ENUM('completed', 'cancelled') NOT NULL DEFAULT 'completed',
+        cashier_id VARCHAR(36),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cashier_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      -- Create transaction_items table
+      CREATE TABLE IF NOT EXISTS transaction_items (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        transaction_id VARCHAR(36),
+        product_id VARCHAR(36),
+        quantity INTEGER NOT NULL,
+        unit_price DECIMAL(12,2) NOT NULL,
+        total_price DECIMAL(12,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+
+      -- Create migrations table
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      );
+
+      -- Create indexes for better performance
+      CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+      CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
+      CREATE INDEX IF NOT EXISTS idx_transactions_cashier_id ON transactions(cashier_id);
+      CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
+      CREATE INDEX IF NOT EXISTS idx_transaction_items_transaction_id ON transaction_items(transaction_id);
+      CREATE INDEX IF NOT EXISTS idx_transaction_items_product_id ON transaction_items(product_id);
+    `,
+  },
+  {
+    id: 2,
+    name: "insert_initial_data",
+    sql: `
+      -- Insert users with explicit UUIDs
+      INSERT IGNORE INTO users (id, email, name, role) VALUES
+      (UUID(), 'superadmin@familystore.com', 'Super Admin', 'super_admin'),
+      (UUID(), 'admin@familystore.com', 'Admin Store', 'admin'),
+      (UUID(), 'kasir1@familystore.com', 'Kasir Satu', 'kasir'),
+      (UUID(), 'kasir2@familystore.com', 'Kasir Dua', 'kasir');
+
+      -- Insert categories
+      INSERT IGNORE INTO categories (id, name) VALUES
+      (UUID(), 'Makanan'),
+      (UUID(), 'Minuman'),
+      (UUID(), 'Snack'),
+      (UUID(), 'Peralatan Rumah Tangga'),
+      (UUID(), 'Kesehatan'),
+      (UUID(), 'Kecantikan');
+    `,
+  },
+  {
+    id: 3,
+    name: "insert_sample_products",
+    sql: `
+      -- Added sample products with proper category references
+      INSERT IGNORE INTO products (id, name, category_id, price, stock, min_stock, barcode) 
+      SELECT 
+        UUID(),
+        product_name,
+        cat.id,
+        price,
+        stock,
+        min_stock,
+        barcode
+      FROM (
+        SELECT 'Indomie Goreng' as product_name, 'Makanan' as category_name, 3500 as price, 150 as stock, 20 as min_stock, '8992388101010' as barcode
+        UNION ALL SELECT 'Aqua 600ml', 'Minuman', 3000, 200, 50, '8992388201010'
+        UNION ALL SELECT 'Chitato Sapi Panggang', 'Snack', 8500, 75, 15, '8992388301010'
+        UNION ALL SELECT 'Sabun Mandi Lifebuoy', 'Kesehatan', 4500, 100, 25, '8992388401010'
+        UNION ALL SELECT 'Shampoo Pantene', 'Kecantikan', 15000, 50, 10, '8992388501010'
+        UNION ALL SELECT 'Teh Botol Sosro', 'Minuman', 4000, 120, 30, '8992388601010'
+        UNION ALL SELECT 'Beras Premium 5kg', 'Makanan', 65000, 25, 5, '8992388701010'
+        UNION ALL SELECT 'Deterjen Rinso', 'Peralatan Rumah Tangga', 12000, 80, 15, '8992388801010'
+        UNION ALL SELECT 'Kopi Kapal Api', 'Minuman', 2500, 200, 40, '8992388901010'
+        UNION ALL SELECT 'Minyak Goreng Tropical', 'Makanan', 18000, 60, 10, '8992389001010'
+        UNION ALL SELECT 'Susu Ultra Milk', 'Minuman', 6500, 90, 20, '8992389101010'
+        UNION ALL SELECT 'Pasta Gigi Pepsodent', 'Kesehatan', 8500, 70, 15, '8992389201010'
+      ) AS products_data
+      JOIN categories cat ON cat.name = products_data.category_name;
+    `,
+  },
+]
+
+export async function runMigrations() {
+  try {
+    console.log("[v0] Starting database migrations...")
+
+    // Get executed migrations
+    let executedMigrations: number[] = []
+    try {
+      const results = (await executeQuery("SELECT id FROM migrations")) as any[]
+      executedMigrations = results.map((row: any) => row.id)
+    } catch (error) {
+      // Migrations table doesn't exist yet, will be created
+      console.log("[v0] Migrations table not found, will be created")
+    }
+
+    // Run pending migrations
+    for (const migration of migrations) {
+      if (!executedMigrations.includes(migration.id)) {
+        console.log(`[v0] Running migration: ${migration.name}`)
+
+        // Split SQL by semicolon and execute each statement
+        const statements = migration.sql
+          .split(";")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+
+        for (const statement of statements) {
+          await executeQuery(statement)
+        }
+
+        // Record migration as executed
+        await executeQuery("INSERT INTO migrations (id, name) VALUES (?, ?)", [migration.id, migration.name])
+
+        console.log(`[v0] Migration completed: ${migration.name}`)
+      }
+    }
+
+    console.log("[v0] All migrations completed successfully")
+  } catch (error) {
+    console.error("[v0] Migration failed:", error)
+    throw error
+  }
+}
+
+export async function checkMigrationStatus() {
+  try {
+    const results = (await executeQuery("SELECT * FROM migrations ORDER BY id")) as any[]
+    return results
+  } catch (error) {
+    return []
+  }
+}
+
+export const initializeDatabase = runMigrations

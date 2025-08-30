@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Search, Plus } from "lucide-react"
-import { productService, categoryService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/supabase-service"
 import type { Product } from "@/types"
 
 interface ProductGridProps {
@@ -23,13 +23,20 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          productService.getProducts(),
-          categoryService.getCategories(),
+        const [productsResponse, categoriesResponse] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/categories'),
         ])
 
-        setProducts(productsData || [])
-        const categoryNames = ["Semua", ...categoriesData.map((cat: any) => cat.name)]
+        if (!productsResponse.ok || !categoriesResponse.ok) {
+          throw new Error('Failed to fetch data')
+        }
+
+        const productsData = await productsResponse.json()
+        const categoriesData = await categoriesResponse.json()
+
+        setProducts(productsData.data || [])
+        const categoryNames = ["Semua", ...categoriesData.data.map((cat: any) => cat.name)]
         setCategories(categoryNames)
       } catch (error) {
         console.error("Error fetching products and categories:", error)
@@ -108,7 +115,7 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-96 overflow-y-auto">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4  overflow-y-auto">
         {filteredProducts.map((product) => (
           <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-4">

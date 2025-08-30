@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Minus, Plus, Trash2 } from "lucide-react"
-import { formatCurrency } from "@/lib/mock-data"
+import { formatCurrency } from "@/lib/supabase-service"
 import type { TransactionItem } from "@/types"
 
 interface ShoppingCartProps {
@@ -43,56 +43,54 @@ export function ShoppingCart({ items, onUpdateQuantity, onRemoveItem, onClearCar
             </div>
           ) : (
             <>
-              <div className="flex-1 min-h-0">
-                <div className="h-full overflow-y-auto pr-2 space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.productId}
-                      className="flex items-center gap-3 p-3 border rounded-lg bg-white shadow-sm"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{item.productName}</h4>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(item.price)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 bg-transparent"
-                          onClick={() => onUpdateQuantity(item.productId, Math.max(0, item.quantity - 1))}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={item.quantity.toString()}
-                          onChange={(e) => onUpdateQuantity(item.productId, Number.parseInt(e.target.value) || 0)}
-                          className="w-16 h-8 text-center"
-                          min="0"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 bg-transparent"
-                          onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="text-right min-w-20 flex-shrink-0">
-                        <p className="font-medium text-sm">{formatCurrency(item.subtotal)}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onRemoveItem(item.productId)}
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 mt-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+              <div className="flex-1 min-h-0 overflow-y-auto max-h-[300px] pr-2 space-y-3">
+                {items.map((item) => (
+                  <div
+                    key={item.productId}
+                    className="flex items-center gap-3 p-3 border rounded-lg bg-white shadow-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{item.productName}</h4>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(item.price)}</p>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 bg-transparent"
+                        onClick={() => onUpdateQuantity(item.productId, Math.max(0, item.quantity - 1))}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={item.quantity.toString()}
+                        onChange={(e) => onUpdateQuantity(item.productId, Number.parseInt(e.target.value) || 0)}
+                        className="w-16 h-8 text-center"
+                        min="0"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 bg-transparent"
+                        onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="text-right min-w-20 flex-shrink-0">
+                      <p className="font-medium text-sm">{formatCurrency(item.subtotal)}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveItem(item.productId)}
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 mt-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="flex-shrink-0 pt-4 border-t bg-white">

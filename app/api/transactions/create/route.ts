@@ -1,11 +1,30 @@
 import { NextResponse } from "next/server"
-import { createTransaction } from "@/lib/mysql-service"
+import { transactionService } from "@/lib/mysql-service"
 
 export async function POST(request: Request) {
   try {
     const transactionData = await request.json()
+
+    // Validate required fields
+    const requiredFields = ["customer_name", "payment_method", "payment_amount", "cashier_id", "items"]
+    const missingFields = requiredFields.filter(field => {
+      if (field === "items") {
+        return !Array.isArray(transactionData.items) || transactionData.items.length === 0
+      }
+      return !transactionData[field]
+    })
+
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Missing or invalid required fields: ${missingFields.join(", ")}`,
+        },
+        { status: 400 }
+      )
+    }
     
-    const transaction = await createTransaction(transactionData)
+    const transaction = await transactionService.createTransaction(transactionData)
     
     return NextResponse.json({
       success: true,

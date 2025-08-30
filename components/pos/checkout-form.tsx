@@ -23,13 +23,20 @@ export function CheckoutForm({ items, onCheckout, isProcessing }: CheckoutFormPr
   const [customerName, setCustomerName] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("cash")
   const [amountPaid, setAmountPaid] = useState<number>(0)
+  const [totalAmount, setTotalAmount] = useState<number>(0)
+  const [taxRate, setTaxRate] = useState<number>(10) // default tax rate percentage
   const [showXenditModal, setShowXenditModal] = useState(false)
   const [transactionId, setTransactionId] = useState("")
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const tax = subtotal * 0.1
+  const tax = Math.floor(subtotal * (taxRate / 100)) // integer tax calculation based on taxRate
   const total = subtotal + tax
   const change = amountPaid - total
+
+  // Sync totalAmount state with total
+  if (totalAmount !== total) {
+    setTotalAmount(total)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,33 +95,33 @@ export function CheckoutForm({ items, onCheckout, isProcessing }: CheckoutFormPr
 
             {/* Payment Method */}
             <div className="space-y-2">
-              <Label>Metode Pembayaran</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Tunai</SelectItem>
-                  <SelectItem value="card">Kartu Debit/Kredit</SelectItem>
-                  <SelectItem value="qris">QRIS</SelectItem>
-                  <SelectItem value="transfer">Transfer Bank</SelectItem>
-                  <SelectItem value="xendit">Pembayaran Digital (Xendit)</SelectItem>
-                </SelectContent>
-              </Select>
+            <Label>Metode Pembayaran</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Tunai</SelectItem>
+                <SelectItem value="card">Kartu Debit/Kredit</SelectItem>
+                <SelectItem value="qris">QRIS</SelectItem>
+                <SelectItem value="transfer">Transfer Bank</SelectItem>
+                <SelectItem value="xendit">Pembayaran Digital (Xendit)</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
 
             {/* Payment Amount (for cash) */}
             {paymentMethod === "cash" && (
               <div className="space-y-2">
                 <Label htmlFor="amount">Jumlah Dibayar</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amountPaid === 0 ? "" : amountPaid.toString()}
-                  onChange={(e) => setAmountPaid(Number.parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                  min={total}
-                />
+                  <Input
+                    id="amount"
+                    type="text"
+                    value={amountPaid === 0 ? "" : amountPaid.toString()}
+                    onChange={(e) => setAmountPaid(Number.parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    min={total}
+                  />
                 <div className="flex gap-2 flex-wrap">
                   {[50000, 100000, 200000, 500000].map((amount) => (
                     <Button
@@ -127,7 +134,10 @@ export function CheckoutForm({ items, onCheckout, isProcessing }: CheckoutFormPr
                       {formatCurrency(amount)}
                     </Button>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleQuickAmount(total)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    handleQuickAmount(total)
+                    setAmountPaid(total)
+                  }}>
                     Pas
                   </Button>
                 </div>

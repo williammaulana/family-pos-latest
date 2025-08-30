@@ -105,6 +105,12 @@ export default function POSPage() {
       const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0)
       const tax = subtotal * 0.1 // 10% tax
       const total = subtotal + tax
+
+      // Fix for "pas" payment method: if paymentMethod is "pas", set amountPaid to total
+      if (paymentMethod === "pas") {
+        amountPaid = total
+      }
+
       const change = amountPaid - total
 
       console.log("[v0] Transaction calculations", { subtotal, tax, total, change })

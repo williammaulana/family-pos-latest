@@ -220,7 +220,7 @@ export const transactionService = {
       ...transaction,
       cashierName: transaction.users?.name || "Unknown",
       items:
-        transaction.transaction_items?.map((item) => ({
+        transaction.transaction_items?.map((item: any) => ({
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
@@ -249,7 +249,7 @@ export const transactionService = {
       ...data,
       cashierName: data.users?.name || "Unknown",
       items:
-        data.transaction_items?.map((item) => ({
+        data.transaction_items?.map((item: any) => ({
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
@@ -275,6 +275,20 @@ export const transactionService = {
     const tax = subtotal * 0.1
     const total = subtotal + tax
     const change = transactionData.amountPaid - total
+
+    // Validate each product_id exists and stock is sufficient
+    for (const item of transactionData.items) {
+      if (!item.productId || item.quantity === undefined || item.price === undefined || item.subtotal === undefined) {
+        throw new Error("Product ID, quantity, price, and subtotal are required for each item")
+      }
+      const product = await productService.getProductById(item.productId)
+      if (!product) {
+        throw new Error(`Invalid product ID: ${item.productId}. Product must exist in the products table.`)
+      }
+      if (product.stock < item.quantity) {
+        throw new Error(`Insufficient stock for product ID: ${item.productId}. Available stock: ${product.stock}, requested: ${item.quantity}`)
+      }
+    }
 
     // Generate transaction code
     const { data: lastTransaction } = await supabase
@@ -517,13 +531,15 @@ export const reportsService = {
   },
 }
 
-// Helper function to format currency (keeping from mock-data)
 export const formatCurrency = (amount: number): string => {
+  // amount is integer representing smallest currency unit (e.g., cents)
+  // Convert to integer rupiah amount (no decimals)
+  const intAmount = Math.floor(amount)
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(amount)
+  }).format(intAmount).replace("Rp.", "Rp")
 }
 
 // Helper function to format date (keeping from mock-data)

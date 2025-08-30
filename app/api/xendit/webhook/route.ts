@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { updateTransactionStatus } from "@/lib/supabase-service"
+import { transactionService } from "@/lib/mysql-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       // Update transaction status in database
       const transactionId = webhookData.metadata?.transaction_id
       if (transactionId) {
-        await updateTransactionStatus(transactionId, "completed", {
+        await transactionService.updateTransactionStatus(transactionId, "completed", {
           xendit_payment_id: webhookData.id,
           payment_method: webhookData.payment_method?.type,
           paid_at: new Date().toISOString(),

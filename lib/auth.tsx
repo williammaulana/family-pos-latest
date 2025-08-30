@@ -12,27 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Mock users data
-const mockUsers: User[] = [
-  {
-    id: "550e8400-e29b-41d4-a716-446655440001",
-    name: "Super Admin",
-    email: "superadmin@familystore.com",
-    role: "super_admin",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440002",
-    name: "Admin Store",
-    email: "admin@familystore.com",
-    role: "admin",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440003",
-    name: "Kasir 1",
-    email: "kasir@familystore.com",
-    role: "kasir",
-  },
-]
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -50,18 +30,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
 
-    // Mock authentication - in real app, this would be an API call
-    const foundUser = mockUsers.find((u) => u.email === email)
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (foundUser && password === "password123") {
-      setUser(foundUser)
-      localStorage.setItem("pos_user", JSON.stringify(foundUser))
+      if (!response.ok) {
+        setIsLoading(false)
+        return false
+      }
+
+      const data = await response.json()
+      if (data.user) {
+        setUser(data.user)
+        localStorage.setItem("pos_user", JSON.stringify(data.user))
+        setIsLoading(false)
+        return true
+      } else {
+        setIsLoading(false)
+        return false
+      }
+    } catch (error) {
       setIsLoading(false)
-      return true
+      return false
     }
-
-    setIsLoading(false)
-    return false
   }
 
   const logout = () => {

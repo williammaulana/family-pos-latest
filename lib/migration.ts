@@ -84,12 +84,12 @@ const migrations: Migration[] = [
       );
 
       -- Create indexes for better performance
-      CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
-      CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
-      CREATE INDEX IF NOT EXISTS idx_transactions_cashier_id ON transactions(cashier_id);
-      CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
-      CREATE INDEX IF NOT EXISTS idx_transaction_items_transaction_id ON transaction_items(transaction_id);
-      CREATE INDEX IF NOT EXISTS idx_transaction_items_product_id ON transaction_items(product_id);
+      CREATE INDEX idx_products_category_id ON products(category_id);
+      CREATE INDEX idx_products_barcode ON products(barcode);
+      CREATE INDEX idx_transactions_cashier_id ON transactions(cashier_id);
+      CREATE INDEX idx_transactions_created_at ON transactions(created_at);
+      CREATE INDEX idx_transaction_items_transaction_id ON transaction_items(transaction_id);
+      CREATE INDEX idx_transaction_items_product_id ON transaction_items(product_id);
     `,
   },
   {
@@ -144,20 +144,49 @@ const migrations: Migration[] = [
       JOIN categories cat ON cat.name = products_data.category_name;
     `,
   },
+  {
+    id: 4,
+    name: "change_price_to_integer",
+    sql: `
+      ALTER TABLE products MODIFY COLUMN price INTEGER NOT NULL;
+      ALTER TABLE transactions MODIFY COLUMN total_amount INTEGER NOT NULL;
+      ALTER TABLE transactions MODIFY COLUMN tax_amount INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE transactions MODIFY COLUMN payment_amount INTEGER NOT NULL;
+      ALTER TABLE transactions MODIFY COLUMN change_amount INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE transaction_items MODIFY COLUMN unit_price INTEGER NOT NULL;
+      ALTER TABLE transaction_items MODIFY COLUMN total_price INTEGER NOT NULL;
+    `,
+  },
 ]
 
 export async function runMigrations() {
   try {
     console.log("[v0] Starting database migrations...")
 
+    // Check if migrations table exists
+    let migrationsTableExists = false
+    try {
+      await executeQuery("SELECT 1 FROM migrations LIMIT 1")
+      migrationsTableExists = true
+    } catch (error) {
+      console.log("[v0] Migrations table not found, creating it now...")
+      // Create migrations table explicitly
+      await executeQuery(`
+        CREATE TABLE IF NOT EXISTS migrations (
+          id INT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id)
+        )
+      `)
+      migrationsTableExists = true
+    }
+
     // Get executed migrations
     let executedMigrations: number[] = []
-    try {
+    if (migrationsTableExists) {
       const results = (await executeQuery("SELECT id FROM migrations")) as any[]
       executedMigrations = results.map((row: any) => row.id)
-    } catch (error) {
-      // Migrations table doesn't exist yet, will be created
-      console.log("[v0] Migrations table not found, will be created")
     }
 
     // Run pending migrations

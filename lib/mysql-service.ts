@@ -59,6 +59,15 @@ export interface TransactionItem {
   product?: Product
 }
 
+export interface StockHistory {
+  id: string
+  product_id: string
+  quantity_change: number
+  reason: string
+  created_at: Date
+  product?: Product
+}
+
 // Initialize database with migrations
 export async function initializeDatabase() {
   await runMigrations()
@@ -373,6 +382,37 @@ export const productService = {
     return lowStockProducts.map((product) => ({
       ...product,
       category: product.category_name || "Unknown",
+    }))
+  },
+
+  async adjustStock(productId: string, quantityChange: number, reason: string) {
+    if (!productId || quantityChange === undefined) {
+      throw new Error("Product ID and quantity change are required")
+    }
+
+    // Update product stock
+    await executeQuery(
+      "UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?",
+      [quantityChange, productId]
+    )
+
+    // Add to stock history
+    await executeQuery(
+      "INSERT INTO stock_history (id, product_id, quantity_change, reason) VALUES (UUID(), ?, ?, ?)",
+      [productId, quantityChange, reason]
+    )
+  },
+
+  async getStockHistory() {
+    const results = await executeQuery(`
+      SELECT sh.*, p.name as product_name
+      FROM stock_history sh
+      LEFT JOIN products p ON sh.product_id = p.id
+      ORDER BY sh.created_at DESC
+    `)
+    return (results as any[]).map((history) => ({
+      ...history,
+      productName: history.product_name || "Unknown",
     }))
   },
 }

@@ -2,7 +2,8 @@ import { Xendit } from "xendit-node"
 
 // Initialize Xendit client
 const xendit = new Xendit({
-  secretKey: process.env.XENDIT_SECRET_KEY || "xnd_development_...", // Replace with your actual key
+  secretKey: process.env.XENDIT_SECRET_KEY || "YOUR_XENDIT_SECRET_KEY", // TODO: Ganti dengan kunci rahasia Xendit Anda
+  publicKey: "xnd_public_development_JQczxxYGxkYoEgxkEr9uZVKJ6rVlz6u49b9ZqC1tGs3KmGTXUWBVDCZpEzXrUv8",
 })
 
 export interface XenditPaymentRequest {

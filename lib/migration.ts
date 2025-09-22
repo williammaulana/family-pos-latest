@@ -157,6 +157,20 @@ const migrations: Migration[] = [
       ALTER TABLE transaction_items MODIFY COLUMN total_price INTEGER NOT NULL;
     `,
   },
+  {
+    id: 5,
+    name: "create_stock_history_table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS stock_history (
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        product_id VARCHAR(36) NOT NULL,
+        quantity_change INTEGER NOT NULL,
+        reason VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+    `,
+  },
 ]
 
 export async function runMigrations() {
@@ -171,14 +185,14 @@ export async function runMigrations() {
     } catch (error) {
       console.log("[v0] Migrations table not found, creating it now...")
       // Create migrations table explicitly
-      await executeQuery(`
+      await executeQuery(\`
         CREATE TABLE IF NOT EXISTS migrations (
           id INT NOT NULL,
           name VARCHAR(255) NOT NULL,
           executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id)
         )
-      `)
+      \`)
       migrationsTableExists = true
     }
 
@@ -192,7 +206,7 @@ export async function runMigrations() {
     // Run pending migrations
     for (const migration of migrations) {
       if (!executedMigrations.includes(migration.id)) {
-        console.log(`[v0] Running migration: ${migration.name}`)
+        console.log(\`[v0] Running migration: \${migration.name}\`)
 
         // Split SQL by semicolon and execute each statement
         const statements = migration.sql
@@ -207,7 +221,7 @@ export async function runMigrations() {
         // Record migration as executed
         await executeQuery("INSERT INTO migrations (id, name) VALUES (?, ?)", [migration.id, migration.name])
 
-        console.log(`[v0] Migration completed: ${migration.name}`)
+        console.log(\`[v0] Migration completed: \${migration.name}\`)
       }
     }
 

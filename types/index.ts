@@ -9,11 +9,14 @@ export interface User {
 export interface Product {
   id: string
   name: string
+  sku?: string
   category: string
   price: number
+  costPrice?: number
   stock: number
   minStock: number
   barcode?: string
+  unit?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -35,6 +38,8 @@ export interface TransactionItem {
   quantity: number
   price: number
   subtotal: number
+  discount?: number
+  discountType?: 'percentage' | 'fixed'
 }
 
 export interface DashboardStats {
@@ -46,4 +51,26 @@ export interface DashboardStats {
   productsGrowth: number
   stockGrowth: number
   transactionsGrowth: number
+}
+
+export interface Discount {
+  type: 'percentage' | 'fixed'
+  value: number
+  description?: string
+}
+
+export interface TransactionDiscount {
+  type: 'percentage' | 'fixed'
+  value: number
+  description?: string
+}
+
+export interface StockHistory {
+  id: string
+  productId: string
+  productName: string
+  quantityChange: number
+  reason: string
+  type: 'in' | 'out' | 'adjustment'
+  createdAt: Date
 }

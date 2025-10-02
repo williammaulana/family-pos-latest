@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { SalesChart } from "@/components/reports/sales-chart"
 import { ProductPerformanceTable } from "@/components/reports/product-performance-table"
 import { StockStatusTable } from "@/components/reports/stock-status-table"
+import { RevenueBreakdown } from "@/components/reports/revenue-breakdown"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { TrendingUp, Package, ShoppingCart, AlertTriangle, Download } from "lucide-react"
@@ -255,6 +256,9 @@ export default function ReportsPage() {
 
         {/* Sales Chart */}
         <SalesChart />
+
+        {/* Revenue Breakdown */}
+        <RevenueBreakdown />
 
         {/* Product Performance and Stock Status */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

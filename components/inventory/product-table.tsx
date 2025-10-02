@@ -76,7 +76,8 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
               <TableRow>
                 <TableHead>Produk</TableHead>
                 <TableHead>Kategori</TableHead>
-                <TableHead>Harga</TableHead>
+                <TableHead>Harga Jual</TableHead>
+                <TableHead>Harga Modal</TableHead>
                 <TableHead>Stok</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Barcode</TableHead>
@@ -94,6 +95,9 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   </TableCell>
                   <TableCell>
                     <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
                   </TableCell>
                   <TableCell>
                     <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
@@ -152,7 +156,8 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
             <TableRow>
               <TableHead>Produk</TableHead>
               <TableHead>Kategori</TableHead>
-              <TableHead>Harga</TableHead>
+              <TableHead>Harga Jual</TableHead>
+              <TableHead>Harga Modal</TableHead>
               <TableHead>Stok</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Barcode</TableHead>
@@ -167,11 +172,32 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   <TableCell>
                     <div>
                       <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">ID: {product.id}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {product.unit ? `${product.unit}` : ''} {product.barcode ? `• ${product.barcode}` : ''}
+                      </p>
                     </div>
                   </TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>{formatCurrency(product.price)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{formatCurrency(product.price)}</p>
+                      {product.costPrice && (
+                        <p className="text-xs text-muted-foreground">
+                          Profit: {formatCurrency(product.price - product.costPrice)}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{formatCurrency(product.costPrice || 0)}</p>
+                      {product.costPrice && (
+                        <p className="text-xs text-muted-foreground">
+                          Margin: {product.price > 0 ? Math.round(((product.price - product.costPrice) / product.price) * 100) : 0}%
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{product.stock}</span>

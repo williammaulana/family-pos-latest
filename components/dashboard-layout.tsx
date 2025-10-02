@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth"
 import { Sidebar } from "@/components/sidebar"
 import { Bell, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatDate } from "@/lib/mock-data"
+import { formatDate } from "@/lib/supabase-service"
 import { useMobile } from "@/hooks/use-mobile"
 
 interface DashboardLayoutProps {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService, initializeDatabase } from '@/lib/mysql-service'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +24,9 @@ export async function POST(request: NextRequest) {
 
     const user = results[0]
 
-    // Check password (keeping the mock logic)
-    if (password !== 'password123') {
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash || '')
+    if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 

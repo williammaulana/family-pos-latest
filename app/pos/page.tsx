@@ -16,6 +16,16 @@ export default function POSPage() {
   const { toast } = useToast()
   const [cartItems, setCartItems] = useState<TransactionItem[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showReceipt, setShowReceipt] = useState(false)
+  const [transactionData, setTransactionData] = useState<{
+    code: string
+    customerName: string
+    paymentMethod: string
+    amountPaid: number
+    change: number
+    cashierName: string
+    transactionDate: Date
+  } | null>(null)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -67,6 +77,20 @@ export default function POSPage() {
     })
   }
 
+  const updateItemDiscount = (productId: string, discount: number, discountType: 'percentage' | 'fixed') => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.productId === productId
+          ? {
+              ...item,
+              discount,
+              discountType,
+            }
+          : item,
+      ),
+    )
+  }
+
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity === 0) {
       removeItem(productId)
@@ -94,7 +118,13 @@ export default function POSPage() {
     setCartItems([])
   }
 
-  const handleCheckout = async (customerName: string, paymentMethod: string, amountPaid: number) => {
+  const startNewTransaction = () => {
+    setShowReceipt(false)
+    setTransactionData(null)
+    clearCart()
+  }
+
+  const handleCheckout = async (customerName: string, paymentMethod: string, amountPaid: number, transactionDiscount?: { type: 'percentage' | 'fixed', value: number }) => {
     if (!user) return
 
     setIsProcessing(true)
@@ -102,9 +132,31 @@ export default function POSPage() {
     try {
       console.log("[v0] Starting checkout process", { customerName, paymentMethod, amountPaid })
 
-      const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0)
+      // Calculate item-level discounts
+      const calculateItemSubtotal = (item: TransactionItem) => {
+        const baseSubtotal = item.price * item.quantity
+        if (item.discount && item.discountType) {
+          const discountAmount = item.discountType === 'percentage' 
+            ? (baseSubtotal * item.discount) / 100
+            : item.discount
+          return Math.max(0, baseSubtotal - discountAmount)
+        }
+        return baseSubtotal
+      }
+
+      const subtotal = cartItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0)
       const tax = subtotal * 0.1 // 10% tax
-      const total = subtotal + tax
+      const beforeDiscountTotal = subtotal + tax
+
+      // Apply transaction-level discount
+      let transactionDiscountAmount = 0
+      if (transactionDiscount) {
+        transactionDiscountAmount = transactionDiscount.type === 'percentage'
+          ? (beforeDiscountTotal * transactionDiscount.value) / 100
+          : transactionDiscount.value
+      }
+
+      const total = Math.max(0, beforeDiscountTotal - transactionDiscountAmount)
 
       // Fix for "pas" payment method: if paymentMethod is "pas", set amountPaid to total
       if (paymentMethod === "pas") {
@@ -113,7 +165,7 @@ export default function POSPage() {
 
       const change = amountPaid - total
 
-      console.log("[v0] Transaction calculations", { subtotal, tax, total, change })
+      console.log("[v0] Transaction calculations", { subtotal, tax, beforeDiscountTotal, transactionDiscountAmount, total, change })
 
       const response = await fetch("/api/transactions/create", {
         method: "POST",
@@ -150,6 +202,20 @@ export default function POSPage() {
       const transaction = result.transaction
 
       console.log("[v0] Transaction created successfully", transaction)
+
+      // Set transaction data for receipt
+      setTransactionData({
+        code: transaction.transaction_code,
+        customerName: customerName || "Walk-in Customer",
+        paymentMethod: paymentMethod,
+        amountPaid: amountPaid,
+        change: change,
+        cashierName: user.name,
+        transactionDate: new Date()
+      })
+
+      // Show receipt
+      setShowReceipt(true)
 
       toast({
         title: "Transaksi berhasil!",
@@ -200,8 +266,16 @@ export default function POSPage() {
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             onClearCart={clearCart}
+            onUpdateDiscount={updateItemDiscount}
           />
-          <CheckoutForm items={cartItems} onCheckout={handleCheckout} isProcessing={isProcessing} />
+          <CheckoutForm 
+            items={cartItems} 
+            onCheckout={handleCheckout} 
+            isProcessing={isProcessing}
+            showReceipt={showReceipt}
+            transactionData={transactionData || undefined}
+            onNewTransaction={startNewTransaction}
+          />
         </div>
       </div>
     </DashboardLayout>

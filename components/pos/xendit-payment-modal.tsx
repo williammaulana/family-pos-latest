@@ -25,7 +25,7 @@ export function XenditPaymentModal({
   onPaymentSuccess,
   transactionId,
 }: XenditPaymentModalProps) {
-  const [selectedMethod, setSelectedMethod] = useState("EWALLET-OVO")
+  const [selectedMethod, setSelectedMethod] = useState("QRIS-QRIS")
   const [customerData, setCustomerData] = useState({
     name: "",
     email: "",
@@ -33,6 +33,7 @@ export function XenditPaymentModal({
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
 
   const handlePayment = async () => {
     setIsProcessing(true)
@@ -67,6 +68,12 @@ export function XenditPaymentModal({
         const paymentAction = paymentData.actions.find((action: any) => action.action === "AUTH")
         if (paymentAction) {
           setPaymentUrl(paymentAction.url)
+          
+          // For QRIS, also get QR code URL
+          if (type === "QRIS") {
+            setQrCodeUrl(paymentAction.url) // In real implementation, this would be a QR code image URL
+          }
+          
           // For demo purposes, we'll simulate successful payment after 3 seconds
           setTimeout(() => {
             onPaymentSuccess(paymentData)
@@ -85,17 +92,36 @@ export function XenditPaymentModal({
     }
   }
 
-  const renderPaymentMethods = () => {
-    const methods = []
+  const renderPaymentMethods = (): JSX.Element[] => {
+    const methods: JSX.Element[] = []
+
+    // QRIS methods (prioritized)
+    Object.entries(XENDIT_PAYMENT_METHODS.QRIS).forEach(([key, method]) => {
+      methods.push(
+        <div key={`QRIS-${key}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+          <RadioGroupItem value={`QRIS-${key}`} id={`QRIS-${key}`} />
+          <Label htmlFor={`QRIS-${key}`} className="flex items-center space-x-3 cursor-pointer flex-1">
+            <span className="text-2xl">{method.icon}</span>
+            <div className="flex-1">
+              <div className="font-medium">{method.name}</div>
+              <div className="text-sm text-gray-500">{method.description}</div>
+            </div>
+          </Label>
+        </div>,
+      )
+    })
 
     // E-Wallet methods
     Object.entries(XENDIT_PAYMENT_METHODS.EWALLET).forEach(([key, method]) => {
       methods.push(
-        <div key={`EWALLET-${key}`} className="flex items-center space-x-2">
+        <div key={`EWALLET-${key}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
           <RadioGroupItem value={`EWALLET-${key}`} id={`EWALLET-${key}`} />
-          <Label htmlFor={`EWALLET-${key}`} className="flex items-center space-x-2 cursor-pointer">
-            <span>{method.icon}</span>
-            <span>{method.name}</span>
+          <Label htmlFor={`EWALLET-${key}`} className="flex items-center space-x-3 cursor-pointer flex-1">
+            <span className="text-2xl">{method.icon}</span>
+            <div className="flex-1">
+              <div className="font-medium">{method.name}</div>
+              <div className="text-sm text-gray-500">{method.description}</div>
+            </div>
           </Label>
         </div>,
       )
@@ -104,11 +130,30 @@ export function XenditPaymentModal({
     // Virtual Account methods
     Object.entries(XENDIT_PAYMENT_METHODS.VIRTUAL_ACCOUNT).forEach(([key, method]) => {
       methods.push(
-        <div key={`VIRTUAL_ACCOUNT-${key}`} className="flex items-center space-x-2">
+        <div key={`VIRTUAL_ACCOUNT-${key}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
           <RadioGroupItem value={`VIRTUAL_ACCOUNT-${key}`} id={`VIRTUAL_ACCOUNT-${key}`} />
-          <Label htmlFor={`VIRTUAL_ACCOUNT-${key}`} className="flex items-center space-x-2 cursor-pointer">
-            <span>{method.icon}</span>
-            <span>{method.name}</span>
+          <Label htmlFor={`VIRTUAL_ACCOUNT-${key}`} className="flex items-center space-x-3 cursor-pointer flex-1">
+            <span className="text-2xl">{method.icon}</span>
+            <div className="flex-1">
+              <div className="font-medium">{method.name}</div>
+              <div className="text-sm text-gray-500">{method.description}</div>
+            </div>
+          </Label>
+        </div>,
+      )
+    })
+
+    // Credit Card methods
+    Object.entries(XENDIT_PAYMENT_METHODS.CREDIT_CARD).forEach(([key, method]) => {
+      methods.push(
+        <div key={`CREDIT_CARD-${key}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+          <RadioGroupItem value={`CREDIT_CARD-${key}`} id={`CREDIT_CARD-${key}`} />
+          <Label htmlFor={`CREDIT_CARD-${key}`} className="flex items-center space-x-3 cursor-pointer flex-1">
+            <span className="text-2xl">{method.icon}</span>
+            <div className="flex-1">
+              <div className="font-medium">{method.name}</div>
+              <div className="text-sm text-gray-500">{method.description}</div>
+            </div>
           </Label>
         </div>,
       )
@@ -118,6 +163,42 @@ export function XenditPaymentModal({
   }
 
   if (paymentUrl) {
+    const [type] = selectedMethod.split("-")
+    
+    if (type === "QRIS") {
+      return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Scan QR Code untuk Pembayaran</DialogTitle>
+            </DialogHeader>
+            <div className="text-center py-6">
+              <div className="bg-white p-6 rounded-lg border-2 border-dashed border-gray-300 mb-4">
+                <div className="w-48 h-48 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-6xl mb-2">📱</div>
+                    <p className="text-sm text-gray-500">QR Code akan muncul di sini</p>
+                    <p className="text-xs text-gray-400 mt-1">Gunakan e-wallet favorit Anda untuk scan</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Scan QR Code di atas dengan aplikasi e-wallet Anda (OVO, DANA, GoPay, dll)
+              </p>
+              <div className="space-y-2">
+                <Button onClick={() => window.open(paymentUrl, "_blank")} className="w-full">
+                  Buka Halaman Pembayaran
+                </Button>
+                <Button variant="outline" onClick={onClose} className="w-full">
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )
+    }
+    
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
@@ -172,9 +253,9 @@ export function XenditPaymentModal({
           </div>
 
           <div className="space-y-3">
-            <Label>Metode Pembayaran</Label>
+            <Label className="text-base font-semibold">Pilih Metode Pembayaran</Label>
             <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod}>
-              <div className="space-y-2">{renderPaymentMethods()}</div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">{renderPaymentMethods()}</div>
             </RadioGroup>
           </div>
 

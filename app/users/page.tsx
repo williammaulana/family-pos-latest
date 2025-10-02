@@ -11,34 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Users, Shield, UserCheck } from "lucide-react"
 import type { User } from "@/types"
-
-// Mock users data (expanded from auth.tsx)
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Super Admin",
-    email: "superadmin@familystore.com",
-    role: "super_admin",
-  },
-  {
-    id: "2",
-    name: "Admin Store",
-    email: "admin@familystore.com",
-    role: "admin",
-  },
-  {
-    id: "3",
-    name: "Kasir 1",
-    email: "kasir@familystore.com",
-    role: "kasir",
-  },
-  {
-    id: "4",
-    name: "Kasir 2",
-    email: "kasir2@familystore.com",
-    role: "kasir",
-  },
-]
+import { userService } from "@/lib/supabase-service"
 
 export default function UsersPage() {
   const { user, isLoading } = useAuth()
@@ -47,6 +20,8 @@ export default function UsersPage() {
   const [isUserFormOpen, setIsUserFormOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -62,6 +37,28 @@ export default function UsersPage() {
     }
   }, [user, isLoading, router, toast])
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersData = await userService.getUsers()
+        setUsers(usersData)
+      } catch (error) {
+        console.error("Error fetching users:", error)
+        toast({
+          title: "Error",
+          description: "Gagal memuat data pengguna",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    if (user) {
+      fetchUsers()
+    }
+  }, [user, toast])
+
   const handleEditUser = (user: User) => {
     setSelectedUser(user)
     setIsUserFormOpen(true)
@@ -72,8 +69,8 @@ export default function UsersPage() {
 
     setIsProcessing(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await userService.deleteUser(userId)
+      setUsers(users.filter(u => u.id !== userId))
       toast({
         title: "Pengguna dihapus",
         description: "Pengguna berhasil dihapus dari sistem",
@@ -92,13 +89,21 @@ export default function UsersPage() {
   const handleSaveUser = async (userData: Partial<User>) => {
     setIsProcessing(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      toast({
-        title: selectedUser ? "Pengguna diperbarui" : "Pengguna ditambahkan",
-        description: selectedUser
-          ? "Informasi pengguna berhasil diperbarui"
-          : "Pengguna baru berhasil ditambahkan ke sistem",
-      })
+      if (selectedUser) {
+        await userService.updateUser(selectedUser.id, userData)
+        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u))
+        toast({
+          title: "Pengguna diperbarui",
+          description: "Informasi pengguna berhasil diperbarui",
+        })
+      } else {
+        const newUser = await userService.createUser(userData as Omit<User, "id" | "createdAt" | "updatedAt">)
+        setUsers([...users, newUser])
+        toast({
+          title: "Pengguna ditambahkan",
+          description: "Pengguna baru berhasil ditambahkan ke sistem",
+        })
+      }
       setIsUserFormOpen(false)
       setSelectedUser(null)
     } catch (error) {
@@ -127,9 +132,9 @@ export default function UsersPage() {
     return null
   }
 
-  const totalUsers = mockUsers.length
-  const adminCount = mockUsers.filter((u) => u.role === "admin" || u.role === "super_admin").length
-  const cashierCount = mockUsers.filter((u) => u.role === "kasir").length
+  const totalUsers = users.length
+  const adminCount = users.filter((u) => u.role === "admin" || u.role === "super_admin").length
+  const cashierCount = users.filter((u) => u.role === "kasir").length
 
   return (
     <DashboardLayout title="Manajemen Pengguna">
@@ -178,7 +183,14 @@ export default function UsersPage() {
         </div>
 
         {/* User Table */}
-        <UserTable users={mockUsers} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
+        {isLoadingUsers ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Memuat data pengguna...</p>
+          </div>
+        ) : (
+          <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
+        )}
 
         {/* User Form Dialog */}
         <UserForm

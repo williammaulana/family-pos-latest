@@ -27,15 +27,18 @@ interface ProductFormProps {
 }
 
 const categories = ["Makanan", "Minuman", "Kebersihan", "Elektronik", "Pakaian", "Lainnya"]
+const units = ["pcs", "dus", "liter", "kg", "gram", "meter", "cm", "buah", "bungkus", "botol", "kaleng", "paket"]
 
 export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: ProductFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     category: "",
     price: "",
+    costPrice: "",
     stock: "",
     minStock: "",
     barcode: "",
+    unit: "",
     description: "",
   })
 
@@ -45,9 +48,11 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
         name: product.name,
         category: product.category,
         price: product.price.toString(),
+        costPrice: product.costPrice?.toString() || "",
         stock: product.stock.toString(),
         minStock: product.minStock.toString(),
         barcode: product.barcode || "",
+        unit: product.unit || "",
         description: "",
       })
     } else {
@@ -55,9 +60,11 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
         name: "",
         category: "",
         price: "",
+        costPrice: "",
         stock: "",
         minStock: "",
         barcode: "",
+        unit: "",
         description: "",
       })
     }
@@ -70,9 +77,11 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
       name: formData.name,
       category: formData.category,
       price: Number.parseFloat(formData.price),
+      costPrice: formData.costPrice ? Number.parseFloat(formData.costPrice) : undefined,
       stock: Number.parseInt(formData.stock),
       minStock: Number.parseInt(formData.minStock),
       barcode: formData.barcode || undefined,
+      unit: formData.unit || undefined,
     }
 
     if (product) {
@@ -127,7 +136,7 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Harga *</Label>
+              <Label htmlFor="price">Harga Jual *</Label>
               <Input
                 id="price"
                 type="number"
@@ -138,6 +147,36 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
                 step="100"
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="costPrice">Harga Modal</Label>
+              <Input
+                id="costPrice"
+                type="number"
+                value={formData.costPrice}
+                onChange={(e) => handleInputChange("costPrice", e.target.value)}
+                placeholder="0"
+                min="0"
+                step="100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="unit">Satuan</Label>
+              <Select value={formData.unit} onValueChange={(value) => handleInputChange("unit", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih satuan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="barcode">Barcode</Label>

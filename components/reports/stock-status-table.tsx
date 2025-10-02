@@ -1,11 +1,61 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { mockStockReports } from "@/lib/mock-reports"
+import { productService } from "@/lib/supabase-service"
+
+interface StockReport {
+  productId: string
+  productName: string
+  category: string
+  currentStock: number
+  minStock: number
+  status: string
+  lastRestocked: Date
+}
 
 export function StockStatusTable() {
+  const [stockReports, setStockReports] = useState<StockReport[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchStockReports = async () => {
+      try {
+        const products = await productService.getProducts()
+        const lowStockProducts = await productService.getLowStockProducts()
+        
+        const reports: StockReport[] = products.map((product: any) => {
+          let status = "normal"
+          if (product.stock === 0) {
+            status = "out"
+          } else if (product.stock <= product.min_stock) {
+            status = "low"
+          }
+          
+          return {
+            productId: product.id,
+            productName: product.name,
+            category: product.category,
+            currentStock: product.stock,
+            minStock: product.min_stock,
+            status,
+            lastRestocked: new Date(product.updated_at || product.created_at)
+          }
+        })
+        
+        setStockReports(reports)
+      } catch (error) {
+        console.error("Error fetching stock reports:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStockReports()
+  }, [])
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "low":
@@ -36,22 +86,37 @@ export function StockStatusTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockStockReports.map((item) => (
-              <TableRow key={item.productId}>
-                <TableCell className="font-medium">{item.productName}</TableCell>
-                <TableCell>{item.category}</TableCell>
-                <TableCell className="text-right">{item.currentStock}</TableCell>
-                <TableCell className="text-right">{item.minStock}</TableCell>
-                <TableCell>{getStatusBadge(item.status)}</TableCell>
-                <TableCell>
-                  {item.lastRestocked.toLocaleDateString("id-ID", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">Memuat data stok...</p>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : stockReports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  Tidak ada data stok
+                </TableCell>
+              </TableRow>
+            ) : (
+              stockReports.map((item) => (
+                <TableRow key={item.productId}>
+                  <TableCell className="font-medium">{item.productName}</TableCell>
+                  <TableCell>{item.category}</TableCell>
+                  <TableCell className="text-right">{item.currentStock}</TableCell>
+                  <TableCell className="text-right">{item.minStock}</TableCell>
+                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                  <TableCell>
+                    {item.lastRestocked.toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

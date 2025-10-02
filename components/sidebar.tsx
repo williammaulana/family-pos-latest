@@ -161,25 +161,29 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
 export function Sidebar() {
   const isMobile = useMobile()
-  const [useState] = useState(false)
+  const [open, setOpen] = useState(false)
 
   if (isMobile) {
     return (
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant='ghost' size='icon' className='fixed top-4 left-4 z-50 md:hidden bg-white shadow-md'>
-            <Menu className='h-5 w-5' />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 md:hidden bg-white shadow-md"
+          >
+            <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side='left' className='p-0 w-64'>
-          <SidebarContent onItemClick={() => useState(false)} />
+        <SheetContent side="left" className="p-0 w-64">
+          <SidebarContent onItemClick={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     )
   }
 
   return (
-    <div className='w-64'>
+    <div className="w-64">
       <SidebarContent />
     </div>
   )

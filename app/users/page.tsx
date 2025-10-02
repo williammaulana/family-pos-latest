@@ -10,35 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Users, Shield, UserCheck } from "lucide-react"
+import { userService } from "@/lib/supabase-service"
 import type { User } from "@/types"
-
-// Mock users data (expanded from auth.tsx)
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Super Admin",
-    email: "superadmin@familystore.com",
-    role: "super_admin",
-  },
-  {
-    id: "2",
-    name: "Admin Store",
-    email: "admin@familystore.com",
-    role: "admin",
-  },
-  {
-    id: "3",
-    name: "Kasir 1",
-    email: "kasir@familystore.com",
-    role: "kasir",
-  },
-  {
-    id: "4",
-    name: "Kasir 2",
-    email: "kasir2@familystore.com",
-    role: "kasir",
-  },
-]
 
 export default function UsersPage() {
   const { user, isLoading } = useAuth()
@@ -47,6 +20,9 @@ export default function UsersPage() {
   const [isUserFormOpen, setIsUserFormOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [usersLoading, setUsersLoading] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -62,6 +38,23 @@ export default function UsersPage() {
     }
   }, [user, isLoading, router, toast])
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await userService.getUsers()
+        setUsers(data || [])
+      } catch (error) {
+        console.error("Error fetching users:", error)
+      } finally {
+        setUsersLoading(false)
+      }
+    }
+
+    if (user && user.role === "super_admin") {
+      fetchUsers()
+    }
+  }, [user, refreshTrigger])
+
   const handleEditUser = (user: User) => {
     setSelectedUser(user)
     setIsUserFormOpen(true)
@@ -72,12 +65,12 @@ export default function UsersPage() {
 
     setIsProcessing(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await userService.deleteUser(userId)
       toast({
         title: "Pengguna dihapus",
         description: "Pengguna berhasil dihapus dari sistem",
       })
+      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menghapus pengguna",
@@ -92,15 +85,22 @@ export default function UsersPage() {
   const handleSaveUser = async (userData: Partial<User>) => {
     setIsProcessing(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      toast({
-        title: selectedUser ? "Pengguna diperbarui" : "Pengguna ditambahkan",
-        description: selectedUser
-          ? "Informasi pengguna berhasil diperbarui"
-          : "Pengguna baru berhasil ditambahkan ke sistem",
-      })
+      if (selectedUser) {
+        await userService.updateUser(selectedUser.id, userData)
+        toast({
+          title: "Pengguna diperbarui",
+          description: "Informasi pengguna berhasil diperbarui",
+        })
+      } else {
+        await userService.createUser(userData as Omit<User, "id" | "createdAt" | "updatedAt">)
+        toast({
+          title: "Pengguna ditambahkan",
+          description: "Pengguna baru berhasil ditambahkan ke sistem",
+        })
+      }
       setIsUserFormOpen(false)
       setSelectedUser(null)
+      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menyimpan pengguna",
@@ -127,9 +127,9 @@ export default function UsersPage() {
     return null
   }
 
-  const totalUsers = mockUsers.length
-  const adminCount = mockUsers.filter((u) => u.role === "admin" || u.role === "super_admin").length
-  const cashierCount = mockUsers.filter((u) => u.role === "kasir").length
+  const totalUsers = users.length
+  const adminCount = users.filter((u) => u.role === "admin" || u.role === "super_admin").length
+  const cashierCount = users.filter((u) => u.role === "kasir").length
 
   return (
     <DashboardLayout title="Manajemen Pengguna">
@@ -178,7 +178,7 @@ export default function UsersPage() {
         </div>
 
         {/* User Table */}
-        <UserTable users={mockUsers} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
+        <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
 
         {/* User Form Dialog */}
         <UserForm

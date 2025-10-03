@@ -21,7 +21,7 @@ export interface Product {
   id: string
   name: string
   category_id: string
-  price: number // Change to integer (e.g., cents)
+  price: number // integer rupiah
   stock: number
   min_stock: number
   barcode?: string
@@ -29,6 +29,11 @@ export interface Product {
   created_at: Date
   updated_at: Date
   category?: Category
+  // Extended metadata
+  cost_price?: number
+  unit?: string
+  sku?: string
+  description?: string
 }
 
 export interface Transaction {
@@ -117,14 +122,18 @@ export async function getProducts(): Promise<Product[]> {
     created_at: row.created_at,
     updated_at: row.updated_at,
     category: row.category_name ? { id: row.category_id, name: row.category_name, created_at: new Date() } : undefined,
+    cost_price: row.cost_price,
+    unit: row.unit,
+    sku: row.sku,
+    description: row.description,
   }))
 }
 
 export async function createProduct(product: Omit<Product, "id" | "created_at" | "updated_at">): Promise<Product> {
   const result = (await executeQuery(
     `
-    INSERT INTO products (name, category_id, price, stock, min_stock, barcode, image_url) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, category_id, price, stock, min_stock, barcode, image_url, cost_price, unit, sku, description) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       product.name,
@@ -133,7 +142,11 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
       product.stock,
       product.min_stock,
       product.barcode,
-      product.image_url,
+    product.image_url,
+    (product as any).cost_price ?? 0,
+    (product as any).unit ?? null,
+    (product as any).sku ?? null,
+    (product as any).description ?? null,
     ],
   )) as any
 

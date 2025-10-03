@@ -3,7 +3,7 @@
 import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { TransactionItem } from "@/types"
 import { Printer, Download } from "lucide-react"
 import jsPDF from "jspdf"

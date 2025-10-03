@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { userService, initializeDatabase } from '@/lib/mysql-service'
+import { initializeDatabase } from '@/lib/mysql-service'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -14,9 +14,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user by email
-    // Since userService doesn't have getUserByEmail, we'll query directly
     const { executeQuery } = await import('@/lib/mysql')
-    const results = await executeQuery('SELECT * FROM users WHERE email = ?', [email]) as any[]
+    const results = await executeQuery('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]) as any[]
 
     if (results.length === 0) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
@@ -24,8 +23,9 @@ export async function POST(request: NextRequest) {
 
     const user = results[0]
 
-    // Check password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash || '')
+    // Fallback: accept default demo password if hash missing (post-migration should set it)
+    const storedHash = user.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    const isValidPassword = await bcrypt.compare(password, storedHash)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }

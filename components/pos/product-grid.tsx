@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Search, Plus } from "lucide-react"
-import { formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { Product } from "@/types"
 
 interface ProductGridProps {

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import { Product } from '@/lib/mysql-service'
+import type { Product } from '@/lib/mysql-service'
 import { StockHistory } from '@/types'
 
 export default function StockAdjustmentPage() {

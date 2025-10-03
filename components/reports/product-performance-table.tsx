@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { reportsService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 
 export function ProductPerformanceTable() {
   const [productPerformance, setProductPerformance] = useState<any[]>([])
@@ -13,8 +13,10 @@ export function ProductPerformanceTable() {
   useEffect(() => {
     const fetchProductPerformance = async () => {
       try {
-        const data = await reportsService.getProductPerformance()
-        const sortedProducts = [...(data || [])].sort((a, b) => b.revenue - a.revenue)
+        const res = await fetch('/api/reports/product-performance')
+        const json = await res.json()
+        const data = json.data || []
+        const sortedProducts = [...data].sort((a: any, b: any) => b.revenue - a.revenue)
         setProductPerformance(sortedProducts)
       } catch (error) {
         console.error("Error fetching product performance:", error)

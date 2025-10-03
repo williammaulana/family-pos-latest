@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { formatCurrency } from '@/lib/supabase-service'
+import { formatCurrency } from '@/lib/utils'
 import type { TransactionItem } from '@/types'
 import { XenditPaymentModal } from './xendit-payment-modal'
 import { Receipt } from './receipt'
@@ -94,8 +94,28 @@ export function CheckoutForm({ items, onCheckout, isProcessing, showReceipt, tra
   }
 
   const handleXenditPaymentSuccess = (paymentData: any) => {
-    // Map to DB enum 'qris' for most digital payments
-    onCheckout(customerName || 'Walk-in Customer', 'qris', total, transactionDiscount || undefined)
+    // Map payment method based on Xendit response
+    // Default to 'qris' if not present
+    const methodType = paymentData?.payment_method?.type || paymentData?.channel || 'QRIS'
+    let mapped: 'qris' | 'e_wallet' | 'transfer_bank' | 'kartu_kredit' | 'kartu_debit' = 'qris'
+    switch (methodType) {
+      case 'QRIS':
+        mapped = 'qris'
+        break
+      case 'EWALLET':
+        mapped = 'e_wallet'
+        break
+      case 'VIRTUAL_ACCOUNT':
+        mapped = 'transfer_bank'
+        break
+      case 'CARD':
+      case 'CREDIT_CARD':
+        mapped = 'kartu_kredit'
+        break
+      default:
+        mapped = 'qris'
+    }
+    onCheckout(customerName || 'Walk-in Customer', mapped, total, transactionDiscount || undefined)
     setShowXenditModal(false)
   }
 

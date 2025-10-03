@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { transactionService, formatCurrency, formatTime } from "@/lib/supabase-service"
+import { formatCurrency, formatTime } from "@/lib/utils"
 
 export function RecentTransactions() {
   const [transactions, setTransactions] = useState<any[]>([])
@@ -12,8 +12,9 @@ export function RecentTransactions() {
   useEffect(() => {
     const fetchRecentTransactions = async () => {
       try {
-        const data = await transactionService.getTransactions(5)
-        setTransactions(data || [])
+        const res = await fetch('/api/transactions?limit=5')
+        const json = await res.json()
+        if (json.success) setTransactions(json.data || [])
       } catch (error) {
         console.error("Error fetching recent transactions:", error)
       } finally {

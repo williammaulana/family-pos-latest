@@ -11,7 +11,7 @@ import { RevenueBreakdown } from "@/components/reports/revenue-breakdown"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { TrendingUp, Package, ShoppingCart, AlertTriangle, Download } from "lucide-react"
-import { reportsService, productService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import { exportToCSV, exportToExcel, exportToJSON, type ExportData } from "@/lib/export-utils"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -46,11 +46,17 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchReportStats = async () => {
       try {
-        const [salesData, productPerformance, lowStockProducts] = await Promise.all([
-          reportsService.getSalesReports(7),
-          reportsService.getProductPerformance(),
-          productService.getLowStockProducts(),
+        const [salesRes, perfRes, lowRes] = await Promise.all([
+          fetch('/api/reports/sales?days=7'),
+          fetch('/api/reports/product-performance'),
+          fetch('/api/products/low-stock'),
         ])
+        const [salesJson, perfJson, lowJson] = await Promise.all([
+          salesRes.json(), perfRes.json(), lowRes.json()
+        ])
+        const salesData = salesJson.data || []
+        const productPerformance = perfJson.data || []
+        const lowStockProducts = lowJson.data || []
 
         const totalSales7Days = salesData.reduce((sum: number, day: any) => sum + day.totalSales, 0)
         const totalTransactions7Days = salesData.reduce((sum: number, day: any) => sum + day.totalTransactions, 0)
@@ -79,10 +85,15 @@ export default function ReportsPage() {
 
   const handleExportReports = async (format: "csv" | "excel" | "json") => {
     try {
+      const [salesRes, perfRes, lowRes] = await Promise.all([
+        fetch('/api/reports/sales?days=30'),
+        fetch('/api/reports/product-performance'),
+        fetch('/api/products/low-stock'),
+      ])
       const [salesData, productPerformance, lowStockProducts] = await Promise.all([
-        reportsService.getSalesReports(30), // Get 30 days of data
-        reportsService.getProductPerformance(),
-        productService.getLowStockProducts(),
+        salesRes.json().then((r) => r.data || []),
+        perfRes.json().then((r) => r.data || []),
+        lowRes.json().then((r) => r.data || []),
       ])
 
       if (format === "json") {

@@ -20,3 +20,15 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const { name, description } = await request.json()
+    if (!name) return NextResponse.json({ success: false, error: "Name is required" }, { status: 400 })
+    const created = await categoryService.createCategory(name, description)
+    return NextResponse.json({ success: true, data: created })
+  } catch (error) {
+    console.error("Error creating category:", error)
+    return NextResponse.json({ success: false, error: "Failed to create category" }, { status: 500 })
+  }
+}

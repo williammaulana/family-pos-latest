@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Minus, Plus, Trash2, Percent } from "lucide-react"
-import { formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { TransactionItem } from "@/types"
 import { useState } from "react"
 

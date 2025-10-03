@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react"
 
 interface RevenueData {
@@ -32,8 +32,6 @@ export function RevenueBreakdown() {
     const fetchRevenueData = async () => {
       setIsLoading(true)
       try {
-        const { reportsService } = await import("@/lib/supabase-service")
-        
         // Get data based on selected period
         let days = 30
         switch (selectedPeriod) {
@@ -51,7 +49,8 @@ export function RevenueBreakdown() {
             break
         }
         
-        const salesData = await reportsService.getSalesReports(days)
+        const res = await fetch(`/api/reports/sales?days=${days}`)
+        const salesData = (await res.json()).data || []
         
         // Process data based on period
         let processedData: RevenueData[] = []

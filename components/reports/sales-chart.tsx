@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
-import { reportsService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import { Calendar, TrendingUp, BarChart3 } from "lucide-react"
 
 export function SalesChart() {
@@ -25,8 +25,9 @@ export function SalesChart() {
     const fetchSalesData = async () => {
       setIsLoading(true)
       try {
-        const data = await reportsService.getSalesReports(Number.parseInt(selectedPeriod))
-        setSalesData(data || [])
+        const res = await fetch(`/api/reports/sales?days=${Number.parseInt(selectedPeriod)}`)
+        const json = await res.json()
+        setSalesData(json.data || [])
       } catch (error) {
         console.error("Error fetching sales data:", error)
       } finally {

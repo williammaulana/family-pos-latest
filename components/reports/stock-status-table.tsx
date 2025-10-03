@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { productService } from "@/lib/supabase-service"
+ 
 
 interface StockReport {
   productId: string
@@ -23,9 +23,13 @@ export function StockStatusTable() {
   useEffect(() => {
     const fetchStockReports = async () => {
       try {
-        const products = await productService.getProducts()
-        const lowStockProducts = await productService.getLowStockProducts()
-        
+        const [productsRes, lowRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/products/low-stock')
+        ])
+        const productsJson = await productsRes.json()
+        const products = productsJson.data || []
+
         const reports: StockReport[] = products.map((product: any) => {
           let status = "normal"
           if (product.stock === 0) {
@@ -44,7 +48,6 @@ export function StockStatusTable() {
             lastRestocked: new Date(product.updated_at || product.created_at)
           }
         })
-        
         setStockReports(reports)
       } catch (error) {
         console.error("Error fetching stock reports:", error)

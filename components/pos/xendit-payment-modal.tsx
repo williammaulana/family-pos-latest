@@ -65,20 +65,20 @@ export function XenditPaymentModal({
       const paymentData = await response.json()
 
       if (paymentData.actions && paymentData.actions.length > 0) {
-        const paymentAction = paymentData.actions.find((action: any) => action.action === "AUTH")
+        const paymentAction = paymentData.actions.find((action: any) => action.action === "AUTH") || paymentData.actions[0]
         if (paymentAction) {
           setPaymentUrl(paymentAction.url)
           
           // For QRIS, also get QR code URL
           if (type === "QRIS") {
-            setQrCodeUrl(paymentAction.url) // In real implementation, this would be a QR code image URL
+            setQrCodeUrl(paymentAction.url)
           }
           
-          // For demo purposes, we'll simulate successful payment after 3 seconds
+          // Simulate successful payment for demo
           setTimeout(() => {
             onPaymentSuccess(paymentData)
             onClose()
-          }, 3000)
+          }, 2000)
         }
       } else {
         onPaymentSuccess(paymentData)

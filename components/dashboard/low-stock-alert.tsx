@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle } from "lucide-react"
-import { productService } from "@/lib/supabase-service"
 
 export function LowStockAlert() {
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([])
@@ -13,8 +12,9 @@ export function LowStockAlert() {
   useEffect(() => {
     const fetchLowStockProducts = async () => {
       try {
-        const data = await productService.getLowStockProducts()
-        setLowStockProducts(data || [])
+        const res = await fetch('/api/products/low-stock')
+        const json = await res.json()
+        setLowStockProducts(json.data || [])
       } catch (error) {
         console.error("Error fetching low stock products:", error)
       } finally {

@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Users, Shield, UserCheck } from "lucide-react"
 import type { User } from "@/types"
-import { userService } from "@/lib/supabase-service"
+// For now, keep Supabase admin-only management. Optionally migrate to MySQL API later.
 
 export default function UsersPage() {
   const { user, isLoading } = useAuth()
@@ -40,8 +40,14 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const usersData = await userService.getUsers()
-        setUsers(usersData)
+        // Placeholder: if users API added, call it here
+        const res = await fetch('/api/users')
+        if (res.ok) {
+          const json = await res.json()
+          setUsers(json.data || [])
+        } else {
+          setUsers([])
+        }
       } catch (error) {
         console.error("Error fetching users:", error)
         toast({
@@ -69,7 +75,7 @@ export default function UsersPage() {
 
     setIsProcessing(true)
     try {
-      await userService.deleteUser(userId)
+      await fetch(`/api/users?id=${userId}`, { method: 'DELETE' })
       setUsers(users.filter(u => u.id !== userId))
       toast({
         title: "Pengguna dihapus",
@@ -90,15 +96,16 @@ export default function UsersPage() {
     setIsProcessing(true)
     try {
       if (selectedUser) {
-        await userService.updateUser(selectedUser.id, userData)
+        await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedUser.id, ...userData }) })
         setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u))
         toast({
           title: "Pengguna diperbarui",
           description: "Informasi pengguna berhasil diperbarui",
         })
       } else {
-        const newUser = await userService.createUser(userData as Omit<User, "id" | "createdAt" | "updatedAt">)
-        setUsers([...users, newUser])
+        const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) })
+        const json = await res.json()
+        if (json?.data) setUsers([...users, json.data])
         toast({
           title: "Pengguna ditambahkan",
           description: "Pengguna baru berhasil ditambahkan ke sistem",

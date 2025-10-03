@@ -179,7 +179,7 @@ export default function POSPage() {
           discount_amount: transactionDiscountAmount,
           payment_amount: amountPaid,
           change_amount: change,
-          payment_method: paymentMethod === 'cash' ? 'tunai' : (paymentMethod === 'digital' || paymentMethod === 'xendit' ? 'qris' : paymentMethod),
+          payment_method: paymentMethod === 'cash' ? 'tunai' : (paymentMethod === 'digital' ? 'qris' : paymentMethod),
           cashier_id: user.id,
           items: cartItems.map((item) => ({
             product_id: item.productId,

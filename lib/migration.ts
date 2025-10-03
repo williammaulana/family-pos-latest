@@ -183,6 +183,31 @@ const migrations: Migration[] = [
       ALTER TABLE transaction_items ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 7,
+    name: "add_auth_and_product_metadata",
+    sql: `
+      -- Add secure auth and richer product fields
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL;
+      
+      -- Seed default password hash ("password") for existing demo users if missing
+      UPDATE users 
+      SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+      WHERE password_hash IS NULL;
+
+      -- Categories metadata
+      ALTER TABLE categories ADD COLUMN IF NOT EXISTS description VARCHAR(255);
+
+      -- Product metadata
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS unit VARCHAR(50) NULL;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS sku VARCHAR(100) NULL;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT NULL;
+
+      -- Store gateway metadata on transactions
+      ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata TEXT NULL;
+    `,
+  },
 ]
 
 export async function runMigrations() {

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Search, MoreHorizontal, Edit, Trash2, Plus, Minus } from "lucide-react"
-import { productService, categoryService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { Product } from "@/types"
 
 interface ProductTableProps {
@@ -27,13 +27,13 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          productService.getProducts(),
-          categoryService.getCategories(),
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/categories'),
         ])
-
-        setProducts(productsData || [])
-        const categoryNames = ["Semua", ...categoriesData.map((cat: any) => cat.name)]
+        const [productsJson, categoriesJson] = await Promise.all([productsRes.json(), categoriesRes.json()])
+        setProducts(productsJson.data || [])
+        const categoryNames = ["Semua", ...(categoriesJson.data || []).map((cat: any) => cat.name)]
         setCategories(categoryNames)
       } catch (error) {
         console.error("Error fetching products and categories:", error)

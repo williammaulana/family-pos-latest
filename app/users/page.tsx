@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Users, Shield, UserCheck } from "lucide-react"
+import { userService } from "@/lib/supabase-service"
 import type { User } from "@/types"
 // For now, keep Supabase admin-only management. Optionally migrate to MySQL API later.
 
@@ -81,6 +82,7 @@ export default function UsersPage() {
         title: "Pengguna dihapus",
         description: "Pengguna berhasil dihapus dari sistem",
       })
+      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menghapus pengguna",
@@ -113,6 +115,7 @@ export default function UsersPage() {
       }
       setIsUserFormOpen(false)
       setSelectedUser(null)
+      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menyimpan pengguna",

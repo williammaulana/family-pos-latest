@@ -4,9 +4,6 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    // Ensure database is initialized
-    await initializeDatabase()
-
     const { email, password } = await request.json()
 
     if (!email || !password) {
@@ -17,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { executeQuery } = await import('@/lib/mysql')
     const results = await executeQuery('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]) as any[]
 
-    if (results.length === 0) {
+    if (error || !data) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
@@ -30,13 +27,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    // Return user data (exclude sensitive info if any)
     return NextResponse.json({
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role
       }
     })
   } catch (error) {

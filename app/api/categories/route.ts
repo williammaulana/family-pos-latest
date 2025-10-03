@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { categoryService } from "@/lib/mysql-service"
+import { categoryService } from "@/lib/supabase-service"
 
 export async function GET(request: NextRequest) {
   try {

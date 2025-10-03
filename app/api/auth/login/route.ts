@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { executeQuery } = await import('@/lib/mysql')
     const results = await executeQuery('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]) as any[]
 
-    if (error || !data) {
+    if (!results || results.length === 0) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       user: {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
       }
     })
   } catch (error) {

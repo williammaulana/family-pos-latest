@@ -14,12 +14,21 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateOrString: Date | string): string {
+  const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString)
   return new Intl.DateTimeFormat("id-ID", {
     year: "numeric",
     month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(dateString))
+  }).format(date)
+}
+
+export function formatTime(dateOrString: Date | string): string {
+  const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString)
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
 }

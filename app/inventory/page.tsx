@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Package, AlertTriangle, TrendingUp, Download, Upload } from "lucide-react"
-import { productService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { Product } from "@/types"
 import { exportToCSV, exportToJSON, exportToExcel } from "@/lib/export-utils"
 
@@ -47,8 +47,9 @@ export default function InventoryPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await productService.getProducts()
-        setProducts(data || [])
+        const res = await fetch('/api/products')
+        const json = await res.json()
+        setProducts(json.data || [])
       } catch (error) {
         console.error("Error fetching products:", error)
       } finally {
@@ -71,7 +72,7 @@ export default function InventoryPage() {
 
     setIsProcessing(true)
     try {
-      await productService.deleteProduct(productId)
+      await fetch(`/api/products?id=${productId}`, { method: 'DELETE' })
       toast({
         title: "Produk dihapus",
         description: "Produk berhasil dihapus dari inventory",
@@ -106,7 +107,7 @@ export default function InventoryPage() {
     setIsProcessing(true)
     try {
       const newStock = Math.max(0, product.stock + adjustment)
-      await productService.updateStock(product.id, newStock)
+      await fetch(`/api/products`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: product.id, stock: newStock }) })
       toast({
         title: "Stok disesuaikan",
         description: `Stok ${product.name} ${adjustment > 0 ? "ditambah" : "dikurangi"} ${Math.abs(adjustment)}`,
@@ -127,13 +128,13 @@ export default function InventoryPage() {
     setIsProcessing(true)
     try {
       if (selectedProduct) {
-        await productService.updateProduct(selectedProduct.id, productData)
+        await fetch(`/api/products`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedProduct.id, ...productData }) })
         toast({
           title: "Produk diperbarui",
           description: "Informasi produk berhasil diperbarui",
         })
       } else {
-        await productService.createProduct(productData as Omit<Product, "id" | "createdAt" | "updatedAt">)
+        await fetch(`/api/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) })
         toast({
           title: "Produk ditambahkan",
           description: "Produk baru berhasil ditambahkan ke inventory",
@@ -161,7 +162,7 @@ export default function InventoryPage() {
       const currentStock = products.find((p) => p.id === selectedProduct.id)?.stock || 0
       const newStock = type === "add" ? currentStock + adjustment : Math.max(0, currentStock - adjustment)
 
-      await productService.updateStock(selectedProduct.id, newStock)
+      await fetch(`/api/products`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedProduct.id, stock: newStock }) })
       toast({
         title: "Stok disesuaikan",
         description: `Stok ${selectedProduct.name} berhasil ${type === "add" ? "ditambah" : "dikurangi"}`,

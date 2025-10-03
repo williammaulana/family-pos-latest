@@ -28,7 +28,7 @@ export function exportToCSV(data: ExportData) {
   }
 }
 
-export function exportToJSON(data: any[], filename: string) {
+export function exportToJSON(data: any[] | object, filename: string) {
   const jsonContent = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" })
   const link = document.createElement("a")

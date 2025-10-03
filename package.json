@@ -48,7 +48,9 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
     "geist": "latest",
+    "html2canvas": "^1.4.1",
     "input-otp": "latest",
+    "jspdf": "^3.0.3",
     "lucide-react": "^0.454.0",
     "mysql2": "^3.14.3",
     "next": "14.2.16",
@@ -65,7 +67,8 @@
     "ts-node": "^10.9.2",
     "vaul": "latest",
     "xendit-node": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

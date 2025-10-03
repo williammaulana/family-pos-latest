@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, AlertCircle } from "lucide-react"
 import { parseCSV, parseExcel, exportToCSV, exportToExcel } from "@/lib/export-utils"
-import { productService } from "@/lib/supabase-service"
+// import { productService } from "@/lib/supabase-service"
 import { useToast } from "@/hooks/use-toast"
 
 interface ProductImportDialogProps {
@@ -156,13 +156,18 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
     for (let i = 1; i < parsed.length; i++) {
       const row = parsed[i]
       try {
-        await productService.createProduct({
+        const payload = {
           name: row[nameIndex],
           sku: row[skuIndex],
           category: row[categoryIndex],
           price: Number(row[priceIndex]),
           stock: Number(row[stockIndex]),
-          min_stock: Number(row[minStockIndex]),
+          minStock: Number(row[minStockIndex]),
+        }
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         })
         successCount++
       } catch (error) {

@@ -128,6 +128,10 @@ export default function OrdersPage() {
         return "Kartu Kredit"
       case "e_wallet":
         return "E-Wallet"
+      case "qris":
+        return "QRIS"
+      case "transfer_bank":
+        return "Transfer Bank"
       default:
         return method
     }

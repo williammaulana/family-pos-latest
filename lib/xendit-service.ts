@@ -2,7 +2,9 @@ import { Xendit } from "xendit-node"
 
 // Initialize Xendit client
 const xendit = new Xendit({
-  secretKey: process.env.XENDIT_SECRET_KEY || "xnd_development_...", // Replace with your actual key
+  // Never hardcode secrets in production; fall back only for development
+  secretKey: process.env.XENDIT_SECRET_KEY || "xnd_development_XXXXXXXXXXXXXXXXXXXX", 
+  publicKey: process.env.XENDIT_PUBLIC_KEY || "xnd_public_development_XXXXXXXXXXXXXXXXXXXX",
 })
 
 export interface XenditPaymentRequest {
@@ -41,7 +43,7 @@ export interface XenditPaymentResponse {
 // Create payment request
 export async function createPayment(paymentData: XenditPaymentRequest): Promise<XenditPaymentResponse> {
   try {
-    const payment = await xendit.Payment.createPayment({
+    const payment = await xendit.PaymentRequest.createPaymentRequest({
       data: {
         amount: paymentData.amount,
         currency: paymentData.currency || "IDR",
@@ -69,8 +71,8 @@ export async function createPayment(paymentData: XenditPaymentRequest): Promise<
 // Get payment status
 export async function getPaymentStatus(paymentId: string): Promise<XenditPaymentResponse> {
   try {
-    const payment = await xendit.Payment.getPayment({
-      paymentId: paymentId,
+    const payment = await xendit.PaymentRequest.getPaymentRequest({
+      paymentRequestId: paymentId,
     })
 
     return payment as XenditPaymentResponse
@@ -82,27 +84,36 @@ export async function getPaymentStatus(paymentId: string): Promise<XenditPayment
 
 // Available payment methods
 export const XENDIT_PAYMENT_METHODS = {
+  QRIS: {
+    QRIS: { code: "QRIS", name: "QRIS", icon: "📱", description: "Scan QR Code dengan e-wallet favorit Anda" },
+  },
   EWALLET: {
-    OVO: { code: "OVO", name: "OVO", icon: "🟠" },
-    DANA: { code: "DANA", name: "DANA", icon: "🔵" },
-    LINKAJA: { code: "LINKAJA", name: "LinkAja", icon: "🔴" },
-    SHOPEEPAY: { code: "SHOPEEPAY", name: "ShopeePay", icon: "🟠" },
-    GOPAY: { code: "GOPAY", name: "GoPay", icon: "🟢" },
+    OVO: { code: "OVO", name: "OVO", icon: "🟠", description: "Bayar dengan OVO" },
+    DANA: { code: "DANA", name: "DANA", icon: "🔵", description: "Bayar dengan DANA" },
+    LINKAJA: { code: "LINKAJA", name: "LinkAja", icon: "🔴", description: "Bayar dengan LinkAja" },
+    SHOPEEPAY: { code: "SHOPEEPAY", name: "ShopeePay", icon: "🟠", description: "Bayar dengan ShopeePay" },
+    GOPAY: { code: "GOPAY", name: "GoPay", icon: "🟢", description: "Bayar dengan GoPay" },
   },
   VIRTUAL_ACCOUNT: {
-    BCA: { code: "BCA", name: "BCA Virtual Account", icon: "🏦" },
-    BNI: { code: "BNI", name: "BNI Virtual Account", icon: "🏦" },
-    BRI: { code: "BRI", name: "BRI Virtual Account", icon: "🏦" },
-    MANDIRI: { code: "MANDIRI", name: "Mandiri Virtual Account", icon: "🏦" },
+    BCA: { code: "BCA", name: "BCA Virtual Account", icon: "🏦", description: "Transfer ke BCA Virtual Account" },
+    BNI: { code: "BNI", name: "BNI Virtual Account", icon: "🏦", description: "Transfer ke BNI Virtual Account" },
+    BRI: { code: "BRI", name: "BRI Virtual Account", icon: "🏦", description: "Transfer ke BRI Virtual Account" },
+    MANDIRI: { code: "MANDIRI", name: "Mandiri Virtual Account", icon: "🏦", description: "Transfer ke Mandiri Virtual Account" },
   },
   CREDIT_CARD: {
-    CREDIT_CARD: { code: "CREDIT_CARD", name: "Credit Card", icon: "💳" },
+    CREDIT_CARD: { code: "CREDIT_CARD", name: "Credit Card", icon: "💳", description: "Bayar dengan Kartu Kredit" },
   },
 }
 
 // Helper function to format payment method for Xendit
 export function formatPaymentMethod(type: string, channel: string) {
   switch (type) {
+    case "QRIS":
+      return {
+        type: "QRIS",
+        reusability: "ONE_TIME_USE",
+        qris: {},
+      }
     case "EWALLET":
       return {
         type: "EWALLET",
@@ -127,11 +138,9 @@ export function formatPaymentMethod(type: string, channel: string) {
       }
     default:
       return {
-        type: "EWALLET",
+        type: "QRIS",
         reusability: "ONE_TIME_USE",
-        ewallet: {
-          channel_code: "OVO",
-        },
+        qris: {},
       }
   }
 }

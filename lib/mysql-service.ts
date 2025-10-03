@@ -21,7 +21,7 @@ export interface Product {
   id: string
   name: string
   category_id: string
-  price: number // Change to integer (e.g., cents)
+  price: number // integer rupiah
   stock: number
   min_stock: number
   barcode?: string
@@ -29,6 +29,11 @@ export interface Product {
   created_at: Date
   updated_at: Date
   category?: Category
+  // Extended metadata
+  cost_price?: number
+  unit?: string
+  sku?: string
+  description?: string
 }
 
 export interface Transaction {
@@ -40,7 +45,7 @@ export interface Transaction {
   tax_amount: number // Change to integer
   payment_amount: number // Change to integer
   change_amount: number // Change to integer
-  payment_method: "tunai" | "kartu_debit" | "kartu_kredit" | "e_wallet"
+  payment_method: "tunai" | "kartu_debit" | "kartu_kredit" | "e_wallet" | "qris" | "transfer_bank"
   status: "completed" | "cancelled"
   cashier_id: string
   created_at: Date
@@ -55,6 +60,15 @@ export interface TransactionItem {
   quantity: number
   unit_price: number // Change to integer
   total_price: number // Change to integer
+  created_at: Date
+  product?: Product
+}
+
+export interface StockHistory {
+  id: string
+  product_id: string
+  quantity_change: number
+  reason: string
   created_at: Date
   product?: Product
 }
@@ -108,14 +122,18 @@ export async function getProducts(): Promise<Product[]> {
     created_at: row.created_at,
     updated_at: row.updated_at,
     category: row.category_name ? { id: row.category_id, name: row.category_name, created_at: new Date() } : undefined,
+    cost_price: row.cost_price,
+    unit: row.unit,
+    sku: row.sku,
+    description: row.description,
   }))
 }
 
 export async function createProduct(product: Omit<Product, "id" | "created_at" | "updated_at">): Promise<Product> {
   const result = (await executeQuery(
     `
-    INSERT INTO products (name, category_id, price, stock, min_stock, barcode, image_url) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, category_id, price, stock, min_stock, barcode, image_url, cost_price, unit, sku, description) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       product.name,
@@ -124,7 +142,11 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
       product.stock,
       product.min_stock,
       product.barcode,
-      product.image_url,
+    product.image_url,
+    (product as any).cost_price ?? 0,
+    (product as any).unit ?? null,
+    (product as any).sku ?? null,
+    (product as any).description ?? null,
     ],
   )) as any
 
@@ -375,6 +397,37 @@ export const productService = {
       category: product.category_name || "Unknown",
     }))
   },
+
+  async adjustStock(productId: string, quantityChange: number, reason: string) {
+    if (!productId || quantityChange === undefined) {
+      throw new Error("Product ID and quantity change are required")
+    }
+
+    // Update product stock
+    await executeQuery(
+      "UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?",
+      [quantityChange, productId]
+    )
+
+    // Add to stock history
+    await executeQuery(
+      "INSERT INTO stock_history (id, product_id, quantity_change, reason) VALUES (UUID(), ?, ?, ?)",
+      [productId, quantityChange, reason]
+    )
+  },
+
+  async getStockHistory() {
+    const results = await executeQuery(`
+      SELECT sh.*, p.name as product_name
+      FROM stock_history sh
+      LEFT JOIN products p ON sh.product_id = p.id
+      ORDER BY sh.created_at DESC
+    `)
+    return (results as any[]).map((history) => ({
+      ...history,
+      productName: history.product_name || "Unknown",
+    }))
+  },
 }
 
 // Transaction Services
@@ -419,7 +472,7 @@ export const transactionService = {
           productId: row.product_id,
           productName: row.product_name || "Unknown",
           quantity: row.quantity,
-          price: row.price,
+          price: row.unit_price, // fix: correct alias from query
           subtotal: row.subtotal,
         })
       }
@@ -473,11 +526,17 @@ export const transactionService = {
     payment_method: string
     payment_amount: number
     cashier_id: string
+    // optional precomputed values from client
+    total_amount?: number
+    tax_amount?: number
+    discount_amount?: number
+    change_amount?: number
     items: Array<{
       product_id: string
       quantity: number
       unit_price: number
-      total_price: number
+      total_price: number // should already reflect item-level discount
+      discount?: number // optional item-level discount amount
     }>
   }) {
     if (!transactionData.customer_name || !transactionData.payment_method || transactionData.payment_amount === undefined || !transactionData.cashier_id || !transactionData.items || transactionData.items.length === 0) {
@@ -489,10 +548,13 @@ export const transactionService = {
     if (!cashier) {
       throw new Error(`Invalid cashier ID: ${transactionData.cashier_id}. Cashier must exist in the users table.`)
     }
+  // Calculate values if not provided, using integer math consistent with UI
   const subtotal = transactionData.items.reduce((sum, item) => sum + (item.total_price || 0), 0)
-  const tax = Math.floor(subtotal * 0.1) // integer tax calculation
-  const total = subtotal + tax
-  const change = Math.max(0, transactionData.payment_amount - total)
+  const tax = transactionData.tax_amount !== undefined ? transactionData.tax_amount : Math.floor(subtotal * 0.1)
+  const beforeDiscountTotal = subtotal + tax
+  const discountAmount = transactionData.discount_amount || 0
+  const total = transactionData.total_amount !== undefined ? transactionData.total_amount : Math.max(0, beforeDiscountTotal - discountAmount)
+  const change = transactionData.change_amount !== undefined ? Math.max(0, transactionData.change_amount) : Math.max(0, transactionData.payment_amount - total)
 
     // Validate each product_id exists and stock is sufficient
     for (const item of transactionData.items) {
@@ -525,7 +587,7 @@ export const transactionService = {
 
     // Create transaction
     await executeQuery(
-      "INSERT INTO transactions (id, transaction_code, customer_name, payment_method, payment_amount, change_amount, total_amount, tax_amount, status, cashier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)",
+      "INSERT INTO transactions (id, transaction_code, customer_name, payment_method, payment_amount, change_amount, total_amount, tax_amount, discount_amount, status, cashier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)",
       [
         transactionId,
         transactionCode,
@@ -535,6 +597,7 @@ export const transactionService = {
         change,
         total,
         tax,
+        discountAmount,
         transactionData.cashier_id,
       ]
     )
@@ -542,8 +605,8 @@ export const transactionService = {
     // Create transaction items
     for (const item of transactionData.items) {
       await executeQuery(
-        "INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price, total_price) VALUES (UUID(), ?, ?, ?, ?, ?)",
-        [transactionId, item.product_id, item.quantity, item.unit_price, item.total_price]
+        "INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price, total_price, discount) VALUES (UUID(), ?, ?, ?, ?, ?, ?)",
+        [transactionId, item.product_id, item.quantity, item.unit_price, item.total_price, item.discount || 0]
       )
       // Update product stock
       await executeQuery("UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?", [item.quantity, item.product_id])

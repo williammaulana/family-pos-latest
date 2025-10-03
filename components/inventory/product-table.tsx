@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Search, MoreHorizontal, Edit, Trash2, Plus, Minus } from "lucide-react"
-import { productService, categoryService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import type { Product } from "@/types"
 
 interface ProductTableProps {
@@ -27,13 +27,13 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          productService.getProducts(),
-          categoryService.getCategories(),
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/categories'),
         ])
-
-        setProducts(productsData || [])
-        const categoryNames = ["Semua", ...categoriesData.map((cat: any) => cat.name)]
+        const [productsJson, categoriesJson] = await Promise.all([productsRes.json(), categoriesRes.json()])
+        setProducts(productsJson.data || [])
+        const categoryNames = ["Semua", ...(categoriesJson.data || []).map((cat: any) => cat.name)]
         setCategories(categoryNames)
       } catch (error) {
         console.error("Error fetching products and categories:", error)
@@ -76,7 +76,8 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
               <TableRow>
                 <TableHead>Produk</TableHead>
                 <TableHead>Kategori</TableHead>
-                <TableHead>Harga</TableHead>
+                <TableHead>Harga Jual</TableHead>
+                <TableHead>Harga Modal</TableHead>
                 <TableHead>Stok</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Barcode</TableHead>
@@ -94,6 +95,9 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   </TableCell>
                   <TableCell>
                     <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
                   </TableCell>
                   <TableCell>
                     <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
@@ -152,7 +156,8 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
             <TableRow>
               <TableHead>Produk</TableHead>
               <TableHead>Kategori</TableHead>
-              <TableHead>Harga</TableHead>
+              <TableHead>Harga Jual</TableHead>
+              <TableHead>Harga Modal</TableHead>
               <TableHead>Stok</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Barcode</TableHead>
@@ -167,11 +172,32 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   <TableCell>
                     <div>
                       <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">ID: {product.id}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {product.unit ? `${product.unit}` : ''} {product.barcode ? `• ${product.barcode}` : ''}
+                      </p>
                     </div>
                   </TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>{formatCurrency(product.price)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{formatCurrency(product.price)}</p>
+                      {product.costPrice && (
+                        <p className="text-xs text-muted-foreground">
+                          Profit: {formatCurrency(product.price - product.costPrice)}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{formatCurrency(product.costPrice || 0)}</p>
+                      {product.costPrice && (
+                        <p className="text-xs text-muted-foreground">
+                          Margin: {product.price > 0 ? Math.round(((product.price - product.costPrice) / product.price) * 100) : 0}%
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{product.stock}</span>

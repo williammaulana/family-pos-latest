@@ -121,7 +121,7 @@ export const productService = {
   },
 
   async updateProduct(id: string, productData: Partial<Product>) {
-    let updateData = { ...productData, updated_at: new Date().toISOString() }
+    let updateData: any = { ...productData, updated_at: new Date().toISOString() }
 
     // Get category ID if category name is provided
     if (productData.category) {

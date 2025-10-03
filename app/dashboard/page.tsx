@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentTransactions } from "@/components/dashboard/recent-transactions"
 import { LowStockAlert } from "@/components/dashboard/low-stock-alert"
-import { dashboardService, formatCurrency } from "@/lib/supabase-service"
+import { formatCurrency } from "@/lib/utils"
 import { DollarSign, ShoppingCart, Package, TrendingUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { DashboardStats } from "@/types"
@@ -26,8 +26,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const stats = await dashboardService.getDashboardStats()
-        setDashboardStats(stats)
+        const res = await fetch('/api/dashboard/stats')
+        const json = await res.json()
+        setDashboardStats(json.data)
       } catch (error) {
         console.error("Error fetching dashboard stats:", error)
       } finally {

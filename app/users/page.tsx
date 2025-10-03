@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Plus, Users, Shield, UserCheck } from "lucide-react"
 import { userService } from "@/lib/supabase-service"
 import type { User } from "@/types"
+// For now, keep Supabase admin-only management. Optionally migrate to MySQL API later.
 
 export default function UsersPage() {
   const { user, isLoading } = useAuth()
@@ -20,9 +21,8 @@ export default function UsersPage() {
   const [isUserFormOpen, setIsUserFormOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [users, setUsers] = useState<any[]>([])
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [usersLoading, setUsersLoading] = useState(true)
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -41,19 +41,30 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const data = await userService.getUsers()
-        setUsers(data || [])
+        // Placeholder: if users API added, call it here
+        const res = await fetch('/api/users')
+        if (res.ok) {
+          const json = await res.json()
+          setUsers(json.data || [])
+        } else {
+          setUsers([])
+        }
       } catch (error) {
         console.error("Error fetching users:", error)
+        toast({
+          title: "Error",
+          description: "Gagal memuat data pengguna",
+          variant: "destructive",
+        })
       } finally {
-        setUsersLoading(false)
+        setIsLoadingUsers(false)
       }
     }
 
-    if (user && user.role === "super_admin") {
+    if (user) {
       fetchUsers()
     }
-  }, [user, refreshTrigger])
+  }, [user, toast])
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user)
@@ -65,7 +76,8 @@ export default function UsersPage() {
 
     setIsProcessing(true)
     try {
-      await userService.deleteUser(userId)
+      await fetch(`/api/users?id=${userId}`, { method: 'DELETE' })
+      setUsers(users.filter(u => u.id !== userId))
       toast({
         title: "Pengguna dihapus",
         description: "Pengguna berhasil dihapus dari sistem",
@@ -86,13 +98,16 @@ export default function UsersPage() {
     setIsProcessing(true)
     try {
       if (selectedUser) {
-        await userService.updateUser(selectedUser.id, userData)
+        await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedUser.id, ...userData }) })
+        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u))
         toast({
           title: "Pengguna diperbarui",
           description: "Informasi pengguna berhasil diperbarui",
         })
       } else {
-        await userService.createUser(userData as Omit<User, "id" | "createdAt" | "updatedAt">)
+        const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) })
+        const json = await res.json()
+        if (json?.data) setUsers([...users, json.data])
         toast({
           title: "Pengguna ditambahkan",
           description: "Pengguna baru berhasil ditambahkan ke sistem",
@@ -178,7 +193,14 @@ export default function UsersPage() {
         </div>
 
         {/* User Table */}
-        <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
+        {isLoadingUsers ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Memuat data pengguna...</p>
+          </div>
+        ) : (
+          <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
+        )}
 
         {/* User Form Dialog */}
         <UserForm

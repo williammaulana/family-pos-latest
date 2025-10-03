@@ -145,15 +145,15 @@ export default function POSPage() {
       }
 
       const subtotal = cartItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0)
-      const tax = subtotal * 0.1 // 10% tax
+      const tax = Math.floor(subtotal * 0.1) // 10% tax, integer
       const beforeDiscountTotal = subtotal + tax
 
       // Apply transaction-level discount
       let transactionDiscountAmount = 0
       if (transactionDiscount) {
         transactionDiscountAmount = transactionDiscount.type === 'percentage'
-          ? (beforeDiscountTotal * transactionDiscount.value) / 100
-          : transactionDiscount.value
+          ? Math.floor((beforeDiscountTotal * transactionDiscount.value) / 100)
+          : Math.floor(transactionDiscount.value)
       }
 
       const total = Math.max(0, beforeDiscountTotal - transactionDiscountAmount)
@@ -176,15 +176,35 @@ export default function POSPage() {
           customer_name: customerName || "Walk-in Customer",
           total_amount: total,
           tax_amount: tax,
+          discount_amount: transactionDiscountAmount,
           payment_amount: amountPaid,
           change_amount: change,
-          payment_method: paymentMethod,
+          payment_method: paymentMethod === 'cash' ? 'tunai' : (paymentMethod === 'digital' || paymentMethod === 'xendit' ? 'qris' : paymentMethod),
           cashier_id: user.id,
           items: cartItems.map((item) => ({
             product_id: item.productId,
             quantity: item.quantity,
             unit_price: item.price,
-            total_price: item.subtotal,
+            total_price: (() => {
+              const baseSubtotal = item.price * item.quantity
+              if (item.discount && item.discountType) {
+                const discountAmount = item.discountType === 'percentage' 
+                  ? (baseSubtotal * item.discount) / 100
+                  : item.discount
+                return Math.max(0, baseSubtotal - discountAmount)
+              }
+              return baseSubtotal
+            })(),
+            discount: (() => {
+              const baseSubtotal = item.price * item.quantity
+              if (item.discount && item.discountType) {
+                const discountAmount = item.discountType === 'percentage' 
+                  ? (baseSubtotal * item.discount) / 100
+                  : item.discount
+                return Math.min(baseSubtotal, Math.max(0, discountAmount))
+              }
+              return 0
+            })(),
           })),
         }),
       })

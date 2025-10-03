@@ -64,8 +64,8 @@ export function CheckoutForm({ items, onCheckout, isProcessing, showReceipt, tra
   let transactionDiscountAmount = 0
   if (transactionDiscount) {
     transactionDiscountAmount = transactionDiscount.type === 'percentage'
-      ? (beforeDiscountTotal * transactionDiscount.value) / 100
-      : transactionDiscount.value
+      ? Math.floor((beforeDiscountTotal * transactionDiscount.value) / 100)
+      : Math.floor(transactionDiscount.value)
   }
   
   const total = Math.max(0, beforeDiscountTotal - transactionDiscountAmount)
@@ -94,7 +94,8 @@ export function CheckoutForm({ items, onCheckout, isProcessing, showReceipt, tra
   }
 
   const handleXenditPaymentSuccess = (paymentData: any) => {
-    onCheckout(customerName || 'Walk-in Customer', 'xendit', total, transactionDiscount || undefined)
+    // Map to DB enum 'qris' for most digital payments
+    onCheckout(customerName || 'Walk-in Customer', 'qris', total, transactionDiscount || undefined)
     setShowXenditModal(false)
   }
 

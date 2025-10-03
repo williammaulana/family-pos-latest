@@ -40,7 +40,7 @@ export interface Transaction {
   tax_amount: number // Change to integer
   payment_amount: number // Change to integer
   change_amount: number // Change to integer
-  payment_method: "tunai" | "kartu_debit" | "kartu_kredit" | "e_wallet"
+  payment_method: "tunai" | "kartu_debit" | "kartu_kredit" | "e_wallet" | "qris" | "transfer_bank"
   status: "completed" | "cancelled"
   cashier_id: string
   created_at: Date
@@ -459,7 +459,7 @@ export const transactionService = {
           productId: row.product_id,
           productName: row.product_name || "Unknown",
           quantity: row.quantity,
-          price: row.price,
+          price: row.unit_price, // fix: correct alias from query
           subtotal: row.subtotal,
         })
       }
@@ -513,11 +513,17 @@ export const transactionService = {
     payment_method: string
     payment_amount: number
     cashier_id: string
+    // optional precomputed values from client
+    total_amount?: number
+    tax_amount?: number
+    discount_amount?: number
+    change_amount?: number
     items: Array<{
       product_id: string
       quantity: number
       unit_price: number
-      total_price: number
+      total_price: number // should already reflect item-level discount
+      discount?: number // optional item-level discount amount
     }>
   }) {
     if (!transactionData.customer_name || !transactionData.payment_method || transactionData.payment_amount === undefined || !transactionData.cashier_id || !transactionData.items || transactionData.items.length === 0) {
@@ -529,10 +535,13 @@ export const transactionService = {
     if (!cashier) {
       throw new Error(`Invalid cashier ID: ${transactionData.cashier_id}. Cashier must exist in the users table.`)
     }
+  // Calculate values if not provided, using integer math consistent with UI
   const subtotal = transactionData.items.reduce((sum, item) => sum + (item.total_price || 0), 0)
-  const tax = Math.floor(subtotal * 0.1) // integer tax calculation
-  const total = subtotal + tax
-  const change = Math.max(0, transactionData.payment_amount - total)
+  const tax = transactionData.tax_amount !== undefined ? transactionData.tax_amount : Math.floor(subtotal * 0.1)
+  const beforeDiscountTotal = subtotal + tax
+  const discountAmount = transactionData.discount_amount || 0
+  const total = transactionData.total_amount !== undefined ? transactionData.total_amount : Math.max(0, beforeDiscountTotal - discountAmount)
+  const change = transactionData.change_amount !== undefined ? Math.max(0, transactionData.change_amount) : Math.max(0, transactionData.payment_amount - total)
 
     // Validate each product_id exists and stock is sufficient
     for (const item of transactionData.items) {
@@ -565,7 +574,7 @@ export const transactionService = {
 
     // Create transaction
     await executeQuery(
-      "INSERT INTO transactions (id, transaction_code, customer_name, payment_method, payment_amount, change_amount, total_amount, tax_amount, status, cashier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)",
+      "INSERT INTO transactions (id, transaction_code, customer_name, payment_method, payment_amount, change_amount, total_amount, tax_amount, discount_amount, status, cashier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)",
       [
         transactionId,
         transactionCode,
@@ -575,6 +584,7 @@ export const transactionService = {
         change,
         total,
         tax,
+        discountAmount,
         transactionData.cashier_id,
       ]
     )
@@ -582,8 +592,8 @@ export const transactionService = {
     // Create transaction items
     for (const item of transactionData.items) {
       await executeQuery(
-        "INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price, total_price) VALUES (UUID(), ?, ?, ?, ?, ?)",
-        [transactionId, item.product_id, item.quantity, item.unit_price, item.total_price]
+        "INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price, total_price, discount) VALUES (UUID(), ?, ?, ?, ?, ?, ?)",
+        [transactionId, item.product_id, item.quantity, item.unit_price, item.total_price, item.discount || 0]
       )
       // Update product stock
       await executeQuery("UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?", [item.quantity, item.product_id])

@@ -7,11 +7,14 @@ export async function POST(request: Request) {
 
     // Validate required fields
     const requiredFields = ["customer_name", "payment_method", "payment_amount", "cashier_id", "items"]
-    const missingFields = requiredFields.filter(field => {
+    const missingFields = requiredFields.filter((field) => {
       if (field === "items") {
         return !Array.isArray(transactionData.items) || transactionData.items.length === 0
       }
-      return !transactionData[field]
+      if (field === "payment_amount") {
+        return transactionData.payment_amount === undefined || Number.isNaN(Number(transactionData.payment_amount))
+      }
+      return transactionData[field] === undefined || transactionData[field] === null || transactionData[field] === ""
     })
 
     if (missingFields.length > 0) {

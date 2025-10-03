@@ -171,6 +171,18 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 6,
+    name: "add_discounts_and_extend_payment_methods",
+    sql: `
+      -- Add transaction-level discount and extend payment methods
+      ALTER TABLE transactions ADD COLUMN IF NOT EXISTS discount_amount INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE transactions MODIFY COLUMN payment_method ENUM('tunai','kartu_debit','kartu_kredit','e_wallet','qris','transfer_bank') NOT NULL;
+
+      -- Add item-level discount column
+      ALTER TABLE transaction_items ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ]
 
 export async function runMigrations() {

@@ -157,10 +157,23 @@ export function Receipt({
 
   const formatPaymentMethod = (method: string) => {
     switch (method) {
-      case 'cash': return 'Tunai'
-      case 'digital': return 'Digital'
-      case 'xendit': return 'Digital (Xendit)'
-      default: return method
+      case 'cash':
+      case 'tunai':
+        return 'Tunai'
+      case 'digital':
+      case 'xendit':
+      case 'e_wallet':
+        return 'E-Wallet / Digital'
+      case 'qris':
+        return 'QRIS'
+      case 'transfer_bank':
+        return 'Transfer Bank'
+      case 'kartu_debit':
+        return 'Kartu Debit'
+      case 'kartu_kredit':
+        return 'Kartu Kredit'
+      default:
+        return method
     }
   }
 

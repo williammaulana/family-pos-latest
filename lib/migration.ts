@@ -240,6 +240,32 @@ export async function runMigrations() {
       executedMigrations = results.map((row: any) => row.id)
     }
 
+    // Helper to emulate "ADD COLUMN IF NOT EXISTS" for MySQL variants without support
+    async function addColumnIfNotExists(
+      tableName: string,
+      columnName: string,
+      columnDefinition: string
+    ) {
+      const existing = (await executeQuery(
+        `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [tableName, columnName]
+      )) as any[]
+      const count = Array.isArray(existing) && existing.length > 0 ? (existing[0].cnt ?? existing[0].COUNT ?? existing[0]["COUNT(*)"]) : 0
+
+      if (!count) {
+        console.log(
+          `[v0] Adding missing column ${tableName}.${columnName} ...`
+        )
+        await executeQuery(
+          `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`
+        )
+      } else {
+        console.log(
+          `[v0] Column already exists, skipping: ${tableName}.${columnName}`
+        )
+      }
+    }
+
     // Run pending migrations
     for (const migration of migrations) {
       if (!executedMigrations.includes(migration.id)) {
@@ -251,7 +277,22 @@ export async function runMigrations() {
           .map((s) => s.trim())
           .filter((s) => s.length > 0)
 
-        for (const statement of statements) {
+        for (const statementRaw of statements) {
+          const statement = statementRaw
+          // Detect and emulate: ALTER TABLE <table> ADD COLUMN IF NOT EXISTS <column> <definition>
+          const addColIfNotExistsMatch = statement.match(
+            /^ALTER\s+TABLE\s+([A-Za-z0-9_`]+)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([A-Za-z0-9_`]+)\s+([\s\S]+)$/i
+          )
+
+          if (addColIfNotExistsMatch) {
+            const tableName = addColIfNotExistsMatch[1].replace(/`/g, "")
+            const columnName = addColIfNotExistsMatch[2].replace(/`/g, "")
+            const columnDefinition = addColIfNotExistsMatch[3].trim()
+
+            await addColumnIfNotExists(tableName, columnName, columnDefinition)
+            continue
+          }
+
           await executeQuery(statement)
         }
 

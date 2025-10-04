@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { productService } from "@/lib/supabase-service"
+import { getServices } from "@/lib/service-resolver"
 
 export async function GET(request: NextRequest) {
   try {
+    const { productService } = await getServices()
     const products = await productService.getProducts()
 
     return NextResponse.json({
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     delete payload.minStock
     delete payload.costPrice
     delete payload.imageUrl
+    const { productService } = await getServices()
     const product = await productService.createProduct(payload)
     return NextResponse.json({ success: true, data: product })
   } catch (error) {
@@ -62,6 +64,7 @@ export async function PUT(request: NextRequest) {
       updates.image_url = rest.imageUrl
       delete updates.imageUrl
     }
+    const { productService } = await getServices()
     const updated = await productService.updateProduct(id, updates)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
@@ -75,6 +78,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
     if (!id) return NextResponse.json({ success: false, error: "Product ID is required" }, { status: 400 })
+    const { productService } = await getServices()
     await productService.deleteProduct(id)
     return NextResponse.json({ success: true })
   } catch (error) {

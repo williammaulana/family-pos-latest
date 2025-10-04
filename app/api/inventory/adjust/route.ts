@@ -1,6 +1,6 @@
 "use server"
 import { NextRequest, NextResponse } from 'next/server'
-import { productService } from '@/lib/mysql-service'
+import { getServices } from '@/lib/service-resolver'
 import { z } from 'zod'
 
 const adjustmentSchema = z.object({
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { productId, quantity, reason } = adjustmentSchema.parse(body)
-
+    const { productService } = await getServices()
     await productService.adjustStock(productId, quantity, reason)
 
     return NextResponse.json({

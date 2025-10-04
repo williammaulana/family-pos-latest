@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { dashboardService } from "@/lib/mysql-service"
+import { getServices } from "@/lib/service-resolver"
 
 export async function GET(request: NextRequest) {
   try {
+    const { dashboardService } = await getServices()
     const data = await dashboardService.getDashboardStats()
     return NextResponse.json({ success: true, data })
   } catch (error) {

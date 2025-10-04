@@ -27,9 +27,13 @@ export async function resolveProvider(): Promise<Provider> {
       // ignore and fallback to Supabase
     }
 
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    const hasSupabase =
+      !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      !!(process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+    if (!hasSupabase) {
       throw new Error(
-        "MySQL tidak tersedia dan kredensial Supabase tidak diset. Set SUPABASE_URL dan SUPABASE_ANON_KEY."
+        "MySQL tidak tersedia dan kredensial Supabase tidak diset. Set NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY (atau SUPABASE_URL/SUPABASE_ANON_KEY)."
       )
     }
     cachedProvider = "supabase"
@@ -46,7 +50,11 @@ export async function resolveProvider(): Promise<Provider> {
   } catch (_) {
     // ignore
   }
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+  const hasSupabase =
+    !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    !!(process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+  if (hasSupabase) {
     cachedProvider = "supabase"
     return cachedProvider
   }

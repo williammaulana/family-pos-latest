@@ -76,6 +76,7 @@ This project includes full Supabase schema and seed.
 
 1. Create a Supabase project.
 2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
+   - Optionally also set server fallbacks: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 3. Apply Supabase migrations:
    - In the Supabase SQL editor, run these files in order:
      - `supabase/migrations/20251002160742_create_pos_tables.sql`

@@ -1,9 +1,34 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
+// Prefer NEXT_PUBLIC_* in the browser; allow server-side SUPABASE_* fallbacks
+const isBrowser = typeof window !== "undefined"
+const supabaseUrl = (isBrowser
+  ? process.env.NEXT_PUBLIC_SUPABASE_URL
+  : process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL) as string | undefined
+const supabaseAnonKey = (isBrowser
+  ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  : process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string | undefined
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+function createSupabaseUnavailableProxy(message: string) {
+  const handler: ProxyHandler<any> = {
+    get() {
+      return () => {
+        throw new Error(message)
+      }
+    },
+    apply() {
+      throw new Error(message)
+    },
+  }
+  return new Proxy({}, handler) as any
+}
+
+export const supabase: any =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : createSupabaseUnavailableProxy(
+        "Supabase environment variables are not set. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (and optionally SUPABASE_URL/SUPABASE_ANON_KEY on the server).",
+      )
 
 // Database types
 export interface Database {

@@ -43,11 +43,24 @@ export async function getConnection() {
       
       // Berikan pesan error yang lebih informatif
       if (error instanceof Error) {
-        if (error.message.includes('ENOTFOUND')) {
-          throw new Error(`Database host tidak ditemukan: ${dbConfig.host}. Pastikan host database benar.`)
-        } else if (error.message.includes('Access denied')) {
+        const message = error.message || String(error)
+        if (message.includes('ECONNREFUSED')) {
+          throw new Error(
+            `Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
+            `Pastikan server MySQL berjalan dan dapat diakses. ` +
+            `Periksa DB_HOST/DB_PORT atau jalankan database terlebih dahulu.`
+          )
+        } else if (message.includes('ETIMEDOUT')) {
+          throw new Error(
+            `Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. ` +
+            `Periksa firewall, jaringan, atau gunakan host yang benar (mis. host Docker atau cloud).`
+          )
+        } else if (message.includes('EAI_AGAIN') || message.includes('ENOTFOUND')) {
+          throw new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa nilai DB_HOST.`)
+        }
+        if (message.includes('Access denied')) {
           throw new Error(`Akses ditolak. Periksa username dan password database.`)
-        } else if (error.message.includes('Unknown database')) {
+        } else if (message.includes('Unknown database')) {
           throw new Error(`Database '${dbConfig.database}' tidak ditemukan. Pastikan database sudah dibuat.`)
         }
       }

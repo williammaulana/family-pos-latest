@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const lower = message.toLowerCase()
+    const isDbUnavailable =
+      lower.includes('econnrefused') ||
+      lower.includes('tidak dapat terhubung ke mysql') ||
+      lower.includes('timeout')
+    return NextResponse.json({ error: message }, { status: isDbUnavailable ? 503 : 500 })
   }
 }

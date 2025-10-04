@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import type { Product } from '@/lib/mysql-service'
-import { StockHistory } from '@/types'
+import type { Product } from '@/types'
+import type { StockHistory } from '@/types'
 
 export default function StockAdjustmentPage() {
   const [productId, setProductId] = useState('')
@@ -145,11 +145,11 @@ export default function StockAdjustmentPage() {
                   <TableRow key={item.id}>
                     <TableCell>{item.productName}</TableCell>
                     <TableCell
-                      className={item.quantity_change > 0 ? 'text-green-600' : 'text-red-600'}>
-                      {item.quantity_change > 0 ? `+${item.quantity_change}` : item.quantity_change}
+                      className={item.quantityChange > 0 ? 'text-green-600' : 'text-red-600'}>
+                      {item.quantityChange > 0 ? `+${item.quantityChange}` : item.quantityChange}
                     </TableCell>
                     <TableCell>{item.reason}</TableCell>
-                    <TableCell>{format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                    <TableCell>{format(new Date(item.createdAt), 'dd/MM/yyyy HH:mm')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

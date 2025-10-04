@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initializeDatabase } from '@/lib/mysql-service'
 import bcrypt from 'bcryptjs'
+import { supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,15 +10,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Fetch user by email
-    const { executeQuery } = await import('@/lib/mysql')
-    const results = await executeQuery('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]) as any[]
+    // Fetch user by email from Supabase
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, name, role, password_hash')
+      .eq('email', email)
+      .single()
 
-    if (!results || results.length === 0) {
+    if (error || !user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
-
-    const user = results[0]
 
     // Fallback: accept default demo password if hash missing (post-migration should set it)
     const storedHash = user.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
@@ -38,11 +39,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Login error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'
-    const lower = message.toLowerCase()
-    const isDbUnavailable =
-      lower.includes('econnrefused') ||
-      lower.includes('tidak dapat terhubung ke mysql') ||
-      lower.includes('timeout')
-    return NextResponse.json({ error: message }, { status: isDbUnavailable ? 503 : 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

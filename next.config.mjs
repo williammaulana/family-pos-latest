@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  images: { unoptimized: true },
+  // Build for server runtime on a VPS
+  output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },

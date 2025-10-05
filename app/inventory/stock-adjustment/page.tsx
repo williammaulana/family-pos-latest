@@ -10,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import type { Product } from '@/lib/mysql-service'
+type ProductOption = { id: string; name: string }
 import { StockHistory } from '@/types'
 
 export default function StockAdjustmentPage() {
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState(0)
   const [reason, setReason] = useState('')
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductOption[]>([])
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([])
   const { toast } = useToast()
 

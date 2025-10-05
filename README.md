@@ -13,40 +13,25 @@ A full-featured web POS and inventory system for Family Store (serba Rp15.000). 
 
 ### Tech Stack
 - Next.js (App Router) + TypeScript
-- Database: MySQL (primary, via mysql2) or Supabase Postgres (optional)
-- Auth: simple email+password (MySQL) or Supabase Auth (optional)
+- Database: Supabase Postgres (primary)
+- Auth: simple email+password via `users.password_hash` (or Supabase Auth)
 - UI: Tailwind + shadcn/ui
 
 ---
 
-### 1) Quick Start (Local with MySQL)
+### 1) Quick Start (Supabase)
 
 1. Prerequisites:
    - Node.js 18+
-   - MySQL 8+ (local or cloud like Railway/PlanetScale)
+   - Supabase project
 
-2. Create database (local):
-   - Run this in MySQL:
-     ```sql
-     SOURCE ./scripts/setup-local-mysql.sql;
-     ```
+2. Configure environment variables: copy `.env.example` to `.env.local` and fill Supabase keys (including `SUPABASE_SERVICE_ROLE_KEY` on server if you plan to run imports)
 
-3. Configure environment variables: copy `.env.example` to `.env.local` and fill:
-   ```env
-   # MySQL
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=root
-   DB_PASSWORD=
-   DB_NAME=family_store_pos
-
-   # (Optional) Supabase client for user/products if you enable Supabase paths
-   NEXT_PUBLIC_SUPABASE_URL=
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=
-
-   # (Optional) Xendit (if using ePayments)
-   XENDIT_API_KEY=
-   ```
+3. Apply Supabase migrations in the SQL editor, in order:
+   - `supabase/migrations/20251002160742_create_pos_tables.sql`
+   - `supabase/migrations/20251003120000_extend_pos_features.sql`
+   - `supabase/migrations/20251005100000_add_user_password_hash.sql`
+   - Seed: `supabase/seed/20251003121500_seed_pos_data.sql`
 
 4. Install dependencies and run dev:
    ```bash
@@ -54,9 +39,8 @@ A full-featured web POS and inventory system for Family Store (serba Rp15.000). 
    pnpm dev
    ```
 
-5. Run DB migrations (MySQL):
-   - Open `http://localhost:3000/api/migrate` (GET) to view status
-   - Run `POST http://localhost:3000/api/migrate` to apply migrations (or click from `app/database-status`)
+5. Verify connection:
+   - Open `http://localhost:3000/api/test-connection` to verify Supabase connectivity
 
 6. Login:
    - Default seeded users (password: `password`):
@@ -71,20 +55,18 @@ A full-featured web POS and inventory system for Family Store (serba Rp15.000). 
 
 ---
 
-### 2) Using Supabase (Postgres)
-This project includes full Supabase schema and seed.
+### 2) Import existing MySQL data to Supabase
+Use the included import script (server-side only):
 
-1. Create a Supabase project.
-2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
-   - Optionally also set server fallbacks: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
-3. Apply Supabase migrations:
-   - In the Supabase SQL editor, run these files in order:
-     - `supabase/migrations/20251002160742_create_pos_tables.sql`
-     - `supabase/migrations/20251003120000_extend_pos_features.sql`
-4. Seed sample data:
-   - Run: `supabase/seed/20251003121500_seed_pos_data.sql`
-5. Switch API layer (optional):
-   - Many API routes already use Supabase services (e.g., `app/api/transactions/create/route.ts`). If you want to use Supabase fully, keep `lib/supabase-service.ts` in use and ensure your Supabase `users` table is synchronized with your auth users. If using MySQL primarily, keep `lib/mysql-service.ts` routes.
+```bash
+pnpm ts-node scripts/import-mysql-to-supabase.ts
+# or
+pnpm import:supabase
+```
+
+Requirements:
+- Set MySQL envs (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`) for the source
+- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for the target
 
 Notes:
 - Supabase migration includes RLS policies. Ensure users are authenticated to access data.
@@ -92,18 +74,9 @@ Notes:
 
 ---
 
-### 3) Seed Data (MySQL)
-- Basic seed is included in migrations and SQL scripts:
-  - Programmatic migrations: see `lib/migration.ts` (runs on `POST /api/migrate`)
-  - Additional SQL seeds:
-    - `scripts/mysql_seed_data.sql` (products, users, random transactions)
-
-Run manually if desired:
-```sql
-SOURCE ./scripts/mysql_migration.sql;
-SOURCE ./scripts/05_add_features.sql;
-SOURCE ./scripts/mysql_seed_data.sql;
-```
+### 3) Notes
+- RLS policies are enabled; use authenticated requests
+- Prices/amounts are integers (rupiah)
 
 ---
 
@@ -131,9 +104,8 @@ SOURCE ./scripts/mysql_seed_data.sql;
 
 ---
 
-### 7) Deployment Tips
-- MySQL Cloud (Railway/PlanetScale): follow `scripts/setup-railway-mysql.md` or `scripts/setup-planetscale-mysql.md`. Set env vars accordingly. Ensure SSL is accepted.
-- Run `POST /api/migrate` after deploy to create/upgrade tables.
+### 5) Deployment Tips
+- Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client; `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` on server (no client exposure)
 
 ---
 

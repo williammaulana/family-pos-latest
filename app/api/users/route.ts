@@ -16,11 +16,19 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { password, ...rest } = body
+    const { password, password_hash, passwordHash, ...rest } = body
     const provider = await getProvider()
-    if (password && provider === "mysql") {
-      const hash = await bcrypt.hash(password, 10)
-      // Insert with password hash directly to ensure login works
+    if (provider === "mysql") {
+      // Support either plaintext password or pre-hashed password
+      let hash: string | null = null
+      if (password_hash || passwordHash) {
+        const prehashed = (password_hash || passwordHash) as string
+        // Normalize $2y$ (Laravel/PHP) to $2a$ for bcryptjs compatibility
+        hash = prehashed.startsWith("$2y$") ? "$2a$" + prehashed.slice(4) : prehashed
+      } else if (password) {
+        hash = await bcrypt.hash(password, 10)
+      }
+
       await executeQuery(
         "INSERT INTO users (id, email, name, role, password_hash) VALUES (UUID(), ?, ?, ?, ?)",
         [rest.email, rest.name, rest.role, hash]
@@ -39,12 +47,20 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, password, ...rest } = await request.json()
+    const { id, password, password_hash, passwordHash, ...rest } = await request.json()
     if (!id) return NextResponse.json({ success: false, error: "User ID required" }, { status: 400 })
     const provider = await getProvider()
-    if (password && provider === "mysql") {
-      const hash = await bcrypt.hash(password, 10)
-      await executeQuery("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?", [hash, id])
+    if (provider === "mysql") {
+      if (password || password_hash || passwordHash) {
+        let hash: string
+        if (password_hash || passwordHash) {
+          const prehashed = (password_hash || passwordHash) as string
+          hash = prehashed.startsWith("$2y$") ? "$2a$" + prehashed.slice(4) : prehashed
+        } else {
+          hash = await bcrypt.hash(password as string, 10)
+        }
+        await executeQuery("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?", [hash, id])
+      }
     }
     const { userService } = await getServices()
     const user = await userService.updateUser(id, rest)

@@ -62,7 +62,7 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
       return
     }
 
-    const userData: Partial<User> = {
+    const userData: Partial<User> & { password?: string } = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
@@ -70,6 +70,10 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
 
     if (user) {
       userData.id = user.id
+    }
+
+    if (!user && formData.password) {
+      userData.password = formData.password
     }
 
     onSave(userData)

@@ -94,7 +94,7 @@ export default function UsersPage() {
     }
   }
 
-  const handleSaveUser = async (userData: Partial<User>) => {
+  const handleSaveUser = async (userData: Partial<User> & { password?: string }) => {
     setIsProcessing(true)
     try {
       if (selectedUser) {
@@ -105,7 +105,11 @@ export default function UsersPage() {
           description: "Informasi pengguna berhasil diperbarui",
         })
       } else {
-        const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) })
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData),
+        })
         const json = await res.json()
         if (json?.data) setUsers([...users, json.data])
         toast({

@@ -190,9 +190,11 @@ const migrations: Migration[] = [
       -- Add secure auth and richer product fields
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL;
       
-      -- Seed default password hash ("password") for existing demo users if missing
+      -- Seed default password hash for demo users if missing
+      -- Using Laravel-style hash ($2y) compatible with bcryptjs compare via $2a normalization
+      -- Plaintext intended: "password123"
       UPDATE users 
-      SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+      SET password_hash = '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'
       WHERE password_hash IS NULL;
 
       -- Categories metadata

@@ -2,9 +2,9 @@
 -- Users (no passwords here; manage auth via Supabase Auth separately)
 INSERT INTO users (id, email, name, role, password_hash)
 VALUES
-  (uuid_generate_v4(), 'superadmin@familystore.com', 'Super Admin', 'super_admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
-  (uuid_generate_v4(), 'admin@familystore.com', 'Admin Store', 'admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
-  (uuid_generate_v4(), 'kasir1@familystore.com', 'Kasir Satu', 'kasir', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+  (uuid_generate_v4(), 'superadmin@familystore.com', 'Super Admin', 'super_admin', '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'),
+  (uuid_generate_v4(), 'admin@familystore.com', 'Admin Store', 'admin', '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'),
+  (uuid_generate_v4(), 'kasir1@familystore.com', 'Kasir Satu', 'kasir', '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC')
 ON CONFLICT (email) DO NOTHING;
 
 -- Categories

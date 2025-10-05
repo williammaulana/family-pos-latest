@@ -224,8 +224,8 @@ export const transactionService = {
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
+          price: item.unit_price,
+          subtotal: item.total_price,
         })) || [],
     }))
   },
@@ -253,8 +253,8 @@ export const transactionService = {
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
+          price: item.unit_price,
+          subtotal: item.total_price,
         })) || [],
     }
   },
@@ -401,14 +401,14 @@ export const dashboardService = {
     // Get today's transactions
     const { data: todayTransactions } = await supabase
       .from("transactions")
-      .select("total, transaction_items(quantity)")
+      .select("total_amount, transaction_items(quantity)")
       .gte("created_at", `${today}T00:00:00`)
       .lt("created_at", `${today}T23:59:59`)
 
     // Get yesterday's transactions for comparison
     const { data: yesterdayTransactions } = await supabase
       .from("transactions")
-      .select("total, transaction_items(quantity)")
+      .select("total_amount, transaction_items(quantity)")
       .gte("created_at", `${yesterday}T00:00:00`)
       .lt("created_at", `${yesterday}T23:59:59`)
 
@@ -416,8 +416,8 @@ export const dashboardService = {
     const { data: products } = await supabase.from("products").select("stock")
 
     // Calculate stats
-    const todayTotal = todayTransactions?.reduce((sum, t) => sum + t.total, 0) || 0
-    const yesterdayTotal = yesterdayTransactions?.reduce((sum, t) => sum + t.total, 0) || 0
+    const todayTotal = todayTransactions?.reduce((sum, t) => sum + t.total_amount, 0) || 0
+    const yesterdayTotal = yesterdayTransactions?.reduce((sum, t) => sum + t.total_amount, 0) || 0
 
     const todayProductsSold =
       todayTransactions?.reduce(
@@ -463,7 +463,7 @@ export const reportsService = {
 
     const { data, error } = await supabase
       .from("transactions")
-      .select("created_at, total")
+      .select("created_at, total_amount")
       .gte("created_at", `${startDate}T00:00:00`)
       .order("created_at")
 
@@ -476,7 +476,7 @@ export const reportsService = {
         if (!acc[date]) {
           acc[date] = { totalSales: 0, totalTransactions: 0 }
         }
-        acc[date].totalSales += transaction.total
+        acc[date].totalSales += transaction.total_amount
         acc[date].totalTransactions += 1
         return acc
       },

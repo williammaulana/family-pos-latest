@@ -1,22 +1,19 @@
 import { NextResponse } from "next/server"
-import { initializeDatabase, checkMigrationStatus } from "@/lib/migration"
+// Deprecated MySQL migration endpoints; keep for backward compatibility returning empty state
 
 export async function POST() {
   try {
-    await initializeDatabase()
-    const migrations = await checkMigrationStatus()
-
     return NextResponse.json({
       success: true,
-      message: "Database migrations completed successfully",
-      migrations,
+      message: "MySQL migration endpoint deprecated; use Supabase SQL migrations.",
+      migrations: [],
     })
   } catch (error) {
     console.error("[v0] Migration API error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Migration failed",
+        error: "Migration not supported (deprecated)",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
@@ -26,11 +23,9 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const migrations = await checkMigrationStatus()
-
     return NextResponse.json({
       success: true,
-      migrations,
+      migrations: [],
     })
   } catch (error) {
     return NextResponse.json(

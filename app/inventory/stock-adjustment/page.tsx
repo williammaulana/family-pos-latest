@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import type { Product } from '@/lib/mysql-service'
+// Use product shape from API response, not MySQL service types
+import type { Product } from '@/types'
 import { StockHistory } from '@/types'
 
 export default function StockAdjustmentPage() {

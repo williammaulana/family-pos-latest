@@ -7,7 +7,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "migrate:mysql-to-supabase": "node --loader ts-node/esm ./scripts/migrate-mysql-to-supabase.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

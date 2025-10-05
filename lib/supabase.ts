@@ -4,10 +4,11 @@ import { createClient } from "@supabase/supabase-js"
 const isBrowser = typeof window !== "undefined"
 const supabaseUrl = (isBrowser
   ? process.env.NEXT_PUBLIC_SUPABASE_URL
-  : process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL) as string | undefined
+  : (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL)) as string | undefined
 const supabaseAnonKey = (isBrowser
   ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  : process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string | undefined
+  : (process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) as string | undefined
+const supabaseServiceRoleKey = (isBrowser ? undefined : process.env.SUPABASE_SERVICE_ROLE_KEY) as string | undefined
 
 function createSupabaseUnavailableProxy(message: string) {
   const handler: ProxyHandler<any> = {
@@ -24,10 +25,14 @@ function createSupabaseUnavailableProxy(message: string) {
 }
 
 export const supabase: any =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
+  supabaseUrl && (supabaseServiceRoleKey || supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseServiceRoleKey || supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+        },
+      })
     : createSupabaseUnavailableProxy(
-        "Supabase environment variables are not set. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (and optionally SUPABASE_URL/SUPABASE_ANON_KEY on the server).",
+        "Supabase environment variables are not set. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (and optionally SUPABASE_URL/SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY on the server).",
       )
 
 // Database types

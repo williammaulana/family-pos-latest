@@ -208,6 +208,16 @@ const migrations: Migration[] = [
       ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata TEXT NULL;
     `,
   },
+  {
+    id: 8,
+    name: "set_superadmin_password_hash",
+    sql: `
+      -- Ensure superadmin has the specified bcrypt hash (Laravel style $2y$)
+      UPDATE users 
+      SET password_hash = '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'
+      WHERE email = 'superadmin@familystore.com';
+    `,
+  },
 ]
 
 export async function runMigrations() {

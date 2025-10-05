@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use standalone output for Node.js hosting (API routes supported)
-  output: 'standalone',
+  // Static export for uploading to public_html (no server-side APIs)
+  output: 'export',
   images: {
     unoptimized: true,
   },

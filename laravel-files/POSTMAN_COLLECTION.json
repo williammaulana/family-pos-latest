@@ -1,0 +1,202 @@
+{
+  "info": {
+    "name": "Family Store POS API",
+    "description": "API Collection for Family Store POS System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@familystore.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"kasir3@familystore.com\",\n  \"name\": \"Kasir Tiga\",\n  \"password\": \"password123\",\n  \"role\": \"kasir\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Low Stock",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/low-stock",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products", "low-stock"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Indomie Soto\",\n  \"category_id\": \"{{category_id}}\",\n  \"price\": 15000,\n  \"cost_price\": 13000,\n  \"stock\": 100,\n  \"min_stock\": 15,\n  \"unit\": \"pcs\",\n  \"barcode\": \"8991102009201\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Get All Transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"John Doe\",\n  \"payment_method\": \"tunai\",\n  \"payment_amount\": 50000,\n  \"cashier_id\": \"{{user_id}}\",\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"quantity\": 2,\n      \"unit_price\": 15000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Sales Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/sales?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "sales"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "dashboard"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

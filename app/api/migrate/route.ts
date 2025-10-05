@@ -1,7 +1,37 @@
 import { NextResponse } from "next/server"
 import { initializeDatabase, checkMigrationStatus } from "@/lib/migration"
 
-export async function POST() {
+function isProduction() {
+  return process.env.NODE_ENV === "production"
+}
+
+function authorize(request: Request): { ok: boolean; message?: string } {
+  // In production, require a header token or disallow entirely unless explicitly enabled
+  if (!isProduction()) return { ok: true }
+
+  const enabled = process.env.ENABLE_MIGRATION_ENDPOINT === "true"
+  if (!enabled) {
+    return { ok: false, message: "Migration endpoint disabled in production" }
+  }
+
+  const expected = process.env.MIGRATION_TOKEN
+  if (!expected) {
+    return { ok: false, message: "Migration token not configured" }
+  }
+
+  const provided = request.headers.get("x-migration-token") || request.headers.get("authorization")?.replace("Bearer ", "")
+  if (provided !== expected) {
+    return { ok: false, message: "Unauthorized" }
+  }
+
+  return { ok: true }
+}
+
+export async function POST(request: Request) {
+  const auth = authorize(request)
+  if (!auth.ok) {
+    return NextResponse.json({ success: false, error: auth.message || "Unauthorized" }, { status: 401 })
+  }
   try {
     await initializeDatabase()
     const migrations = await checkMigrationStatus()
@@ -24,7 +54,11 @@ export async function POST() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = authorize(request)
+  if (!auth.ok) {
+    return NextResponse.json({ success: false, error: auth.message || "Unauthorized" }, { status: 401 })
+  }
   try {
     const migrations = await checkMigrationStatus()
 

@@ -1,4 +1,4 @@
-import { executeQuery } from "./mysql"
+import { executeQuery, getConnection } from "./mysql"
 
 interface Migration {
   id: number
@@ -211,8 +211,39 @@ const migrations: Migration[] = [
 ]
 
 export async function runMigrations() {
+  // Hold a dedicated connection to manage the advisory lock lifecycle
+  let lockConnection: any | null = null
+  const lockName = process.env.MIGRATION_LOCK_NAME || "pos_migration_lock"
+  const lockTimeoutSeconds = Number.parseInt(process.env.MIGRATION_LOCK_TIMEOUT_SECONDS || "60")
+
   try {
     console.log("[v0] Starting database migrations...")
+
+    // Acquire a named advisory lock to prevent concurrent migration runs
+    try {
+      const pool = await getConnection()
+      lockConnection = await pool.getConnection()
+      const [rows]: any = await lockConnection.query("SELECT GET_LOCK(?, ?)", [lockName, lockTimeoutSeconds])
+      const resultKey = rows && rows.length > 0 ? Object.keys(rows[0])[0] : null
+      const gotLock = resultKey ? rows[0][resultKey] : 0
+      if (gotLock !== 1) {
+        throw new Error(
+          `Failed to acquire migration lock '${lockName}' within ${lockTimeoutSeconds}s. Another migration may be running.`,
+        )
+      }
+      console.log(`[v0] Migration lock acquired: ${lockName}`)
+    } catch (lockError: any) {
+      const message = (lockError && lockError.message) || String(lockError)
+      // PlanetScale/Vitess and some managed MySQL may not support GET_LOCK
+      if (/GET_LOCK|function.*not.*allowed|not supported|does not exist|vitess|vtgate/i.test(message)) {
+        console.warn(
+          `[v0] Advisory lock not supported by this MySQL provider. Proceeding without lock. Message: ${message}`,
+        )
+      } else {
+        console.error("[v0] Unable to acquire migration lock:", lockError)
+        throw lockError
+      }
+    }
 
     // Check if migrations table exists
     let migrationsTableExists = false
@@ -317,6 +348,28 @@ export async function runMigrations() {
   } catch (error) {
     console.error("[v0] Migration failed:", error)
     throw error
+  }
+  finally {
+    // Release the advisory lock if held
+    try {
+      if (lockConnection) {
+        try {
+          await lockConnection.query("SELECT RELEASE_LOCK(?)", [lockName])
+          console.log(`[v0] Migration lock released: ${lockName}`)
+        } catch (releaseErr: any) {
+          const msg = (releaseErr && releaseErr.message) || String(releaseErr)
+          if (/RELEASE_LOCK|function.*not.*allowed|not supported|does not exist|vitess|vtgate/i.test(msg)) {
+            // Ignore if provider does not support advisory locks
+            console.warn(`[v0] Advisory lock release not supported. Message: ${msg}`)
+          } else {
+            console.error("[v0] Failed to release migration lock:", releaseErr)
+          }
+        }
+        lockConnection.release()
+      }
+    } catch (releaseError) {
+      console.error("[v0] Failed to cleanup migration lock connection:", releaseError)
+    }
   }
 }
 

@@ -11,6 +11,40 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   ])
 }
 
+function isNetworkOrTimeoutError(error: unknown): boolean {
+  const err = error as any
+  const message = err?.message ? String(err.message).toLowerCase() : ""
+  const causeCode = err?.cause?.code
+  return (
+    message.includes("fetch failed") ||
+    message.includes("network error") ||
+    message.includes("timeout") ||
+    causeCode === "ECONNREFUSED" ||
+    causeCode === "ENOTFOUND" ||
+    causeCode === "ETIMEDOUT" ||
+    causeCode === "ECONNRESET"
+  )
+}
+
+async function withFallback<T>(
+  primary: () => Promise<T>,
+  fallback: () => Promise<T>,
+  timeoutMs = 5000,
+): Promise<T> {
+  try {
+    return await withTimeout(primary(), timeoutMs)
+  } catch (error) {
+    if (isNetworkOrTimeoutError(error)) {
+      try {
+        return await fallback()
+      } catch (_) {
+        // swallow and rethrow original below
+      }
+    }
+    throw error
+  }
+}
+
 export async function resolveProvider(): Promise<Provider> {
   if (cachedProvider) return cachedProvider
 
@@ -89,6 +123,15 @@ export async function getServices() {
         // Biarkan lewat jika tabel tidak ada atau gagal insert history
       }
     },
+    async getLowStockProducts() {
+      return await withFallback(
+        () => supabaseServices.productService.getLowStockProducts(),
+        async () => {
+          const mysql = await import("./mysql-service")
+          return await mysql.productService.getLowStockProducts()
+        },
+      )
+    },
     async getStockHistory() {
       try {
         const { supabase } = await import("./supabase")
@@ -107,9 +150,23 @@ export async function getServices() {
     },
   }
 
+  const transactionService = {
+    ...supabaseServices.transactionService,
+    async getTransactions(limit?: number) {
+      return await withFallback(
+        () => supabaseServices.transactionService.getTransactions(limit),
+        async () => {
+          const mysql = await import("./mysql-service")
+          return await mysql.transactionService.getTransactions(limit)
+        },
+      )
+    },
+  }
+
   return {
     ...supabaseServices,
     productService,
+    transactionService,
   }
 }
 

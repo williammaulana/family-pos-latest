@@ -48,6 +48,7 @@
     "clsx": "^2.1.1",
     "cmdk": "latest",
     "date-fns": "4.1.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "latest",
     "geist": "latest",
     "html2canvas": "^1.4.1",

@@ -1,23 +1,33 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServices } from "@/lib/service-resolver"
 
+export async function GET(_request: NextRequest) {
+  try {
+    const { categoryService } = await getServices()
+    const categories = await categoryService.getCategories()
+    return NextResponse.json({ success: true, data: categories })
+  } catch (error) {
+    console.error("Error fetching categories:", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch categories" },
+      { status: 500 },
+    )
+  }
+}
+
+import { NextRequest, NextResponse } from "next/server"
+import { getServices } from "@/lib/service-resolver"
+
 export async function GET(request: NextRequest) {
   try {
     const { categoryService } = await getServices()
     const categories = await categoryService.getCategories()
-
-    return NextResponse.json({
-      success: true,
-      data: categories,
-    })
+    return NextResponse.json({ success: true, data: categories })
   } catch (error) {
     console.error("Error fetching categories:", error)
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch categories",
-      },
-      { status: 500 }
+      { success: false, error: "Failed to fetch categories" },
+      { status: 500 },
     )
   }
 }

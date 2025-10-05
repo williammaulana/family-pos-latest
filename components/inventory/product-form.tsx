@@ -44,16 +44,22 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
 
   useEffect(() => {
     if (product) {
+      const snake: any = product as any
       setFormData({
-        name: product.name,
-        category: product.category,
-        price: product.price.toString(),
-        costPrice: product.costPrice?.toString() || "",
-        stock: product.stock.toString(),
-        minStock: product.minStock.toString(),
-        barcode: product.barcode || "",
-        unit: product.unit || "",
-        description: "",
+        name: product.name || "",
+        category: (snake.category ?? "") as string,
+        price: String(product.price ?? snake.price ?? ""),
+        costPrice:
+          snake.cost_price !== undefined && snake.cost_price !== null
+            ? String(snake.cost_price)
+            : product.costPrice !== undefined && product.costPrice !== null
+              ? String(product.costPrice)
+              : "",
+        stock: String(product.stock ?? snake.stock ?? ""),
+        minStock: String((product as any).minStock ?? snake.min_stock ?? ""),
+        barcode: (product.barcode ?? snake.barcode ?? "") as string,
+        unit: (product.unit ?? snake.unit ?? "") as string,
+        description: (snake.description ?? "") as string,
       })
     } else {
       setFormData({

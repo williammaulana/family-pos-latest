@@ -14,10 +14,11 @@ interface ProductTableProps {
   onEditProduct: (product: Product) => void
   onDeleteProduct: (productId: string) => void
   onAdjustStock: (productId: string, adjustment: number) => void
+  onViewProduct?: (product: Product) => void
   refreshTrigger?: number
 }
 
-export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, refreshTrigger }: ProductTableProps) {
+export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, onViewProduct, refreshTrigger }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Semua")
   const [products, setProducts] = useState<any[]>([])
@@ -167,6 +168,7 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
           <TableBody>
             {filteredProducts.map((product) => {
               const stockStatus = getStockStatus(product)
+              const costPrice = (product as any).costPrice ?? (product as any).cost_price
               return (
                 <TableRow key={product.id}>
                   <TableCell>
@@ -181,9 +183,9 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   <TableCell>
                     <div>
                       <p className="font-medium">{formatCurrency(product.price)}</p>
-                      {product.costPrice && (
+                      {costPrice !== undefined && costPrice !== null && (
                         <p className="text-xs text-muted-foreground">
-                          Profit: {formatCurrency(product.price - product.costPrice)}
+                          Profit: {formatCurrency(product.price - Number(costPrice))}
                         </p>
                       )}
                     </div>
@@ -201,7 +203,7 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{product.stock}</span>
-                      <span className="text-sm text-muted-foreground">/ min {product.min_stock}</span>
+                      <span className="text-sm text-muted-foreground">/ min {(product as any).min_stock ?? (product as any).minStock}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -230,6 +232,11 @@ export function ProductTable({ onEditProduct, onDeleteProduct, onAdjustStock, re
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {onViewProduct && (
+                            <DropdownMenuItem onClick={() => onViewProduct(product)}>
+                              Detail
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => onEditProduct(product)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit

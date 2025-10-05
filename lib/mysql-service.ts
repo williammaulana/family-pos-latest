@@ -444,8 +444,8 @@ export const transactionService = {
     `
     const params = []
     if (limit) {
-      query += " LIMIT ?"
-      params.push(limit)
+      const safeLimit = Math.max(1, Math.floor(Number(limit)))
+      query += ` LIMIT ${safeLimit}`
     }
     const results = await executeQuery(query, params)
     const transactionsMap = new Map()

@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProductTable } from "@/components/inventory/product-table"
 import { ProductForm } from "@/components/inventory/product-form"
 import { StockAdjustmentDialog } from "@/components/inventory/stock-adjustment-dialog"
+import { ProductDetailDialog } from "@/components/inventory/product-detail-dialog"
 import { ProductImportDialog } from "@/components/inventory/product-import-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +26,8 @@ export default function InventoryPage() {
   const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [detailProduct, setDetailProduct] = useState<any | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [products, setProducts] = useState<any[]>([])
   const [refreshTrigger, setRefreshTrigger] = useState(0)
@@ -65,6 +68,11 @@ export default function InventoryPage() {
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product)
     setIsProductFormOpen(true)
+  }
+
+  const handleViewProduct = (product: Product) => {
+    setDetailProduct(product as any)
+    setIsDetailOpen(true)
   }
 
   const handleDeleteProduct = async (productId: string) => {
@@ -128,13 +136,22 @@ export default function InventoryPage() {
     setIsProcessing(true)
     try {
       if (selectedProduct) {
-        await fetch(`/api/products`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedProduct.id, ...productData }) })
+        // Normalize camelCase to API expectations
+        const payload: any = { id: selectedProduct.id, ...productData }
+        if ((payload as any).minStock !== undefined) {
+          payload.minStock = Number(payload.minStock)
+        }
+        if ((payload as any).costPrice !== undefined) {
+          payload.costPrice = Number(payload.costPrice)
+        }
+        await fetch(`/api/products`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         toast({
           title: "Produk diperbarui",
           description: "Informasi produk berhasil diperbarui",
         })
       } else {
-        await fetch(`/api/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) })
+        const payload: any = { ...productData }
+        await fetch(`/api/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         toast({
           title: "Produk ditambahkan",
           description: "Produk baru berhasil ditambahkan ke inventory",
@@ -343,6 +360,7 @@ export default function InventoryPage() {
           onEditProduct={handleEditProduct}
           onDeleteProduct={handleDeleteProduct}
           onAdjustStock={handleAdjustStock}
+          onViewProduct={handleViewProduct}
           refreshTrigger={refreshTrigger}
         />
 
@@ -368,6 +386,15 @@ export default function InventoryPage() {
           productName={selectedProduct?.name || ""}
           currentStock={selectedProduct?.stock || 0}
           isLoading={isProcessing}
+        />
+
+        <ProductDetailDialog
+          product={detailProduct}
+          isOpen={isDetailOpen}
+          onClose={() => {
+            setIsDetailOpen(false)
+            setDetailProduct(null)
+          }}
         />
 
         <ProductImportDialog

@@ -36,8 +36,10 @@ export async function POST(request: NextRequest) {
     const user = results[0]
 
     // Fallback: accept default demo password if hash missing or column absent
-    const storedHash = (user as any).password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
-    const isValidPassword = await bcrypt.compare(password, storedHash)
+    // Use provided Laravel-style hash for "password123" and normalize $2y$ -> $2a$ for bcryptjs
+    const storedHash = (user as any).password_hash || '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'
+    const normalizedHash = storedHash.startsWith('$2y$') ? storedHash.replace(/^\$2y\$/, '$2a$') : storedHash
+    const isValidPassword = await bcrypt.compare(password, normalizedHash)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }

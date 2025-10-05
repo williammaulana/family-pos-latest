@@ -19,9 +19,9 @@ BEGIN
   END IF;
 END $$;
 
--- Backfill with bcrypt hash for "password"
+-- Backfill with bcrypt hash for "password123" (Laravel-style $2y)
 UPDATE public.users
-SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+SET password_hash = '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'
 WHERE password_hash IS NULL;
 
 -- Set NOT NULL constraint if safe

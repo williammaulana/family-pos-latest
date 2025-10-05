@@ -18,7 +18,7 @@ export const userService = {
   },
 
   async createUser(userData: Omit<User, "id" | "createdAt" | "updatedAt">) {
-    const { data, error } = await supabase.from("users").insert([userData]).select().single()
+    const { data, error } = await supabase.from("users").insert([userData as any]).select().single()
 
     if (error) throw error
     return data
@@ -216,7 +216,7 @@ export const transactionService = {
     const { data, error } = await query
 
     if (error) throw error
-    return data?.map((transaction) => ({
+    return data?.map((transaction: any) => ({
       ...transaction,
       cashierName: transaction.users?.name || "Unknown",
       items:
@@ -224,8 +224,8 @@ export const transactionService = {
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
+          price: item.unit_price,
+          subtotal: item.total_price,
         })) || [],
     }))
   },
@@ -245,16 +245,17 @@ export const transactionService = {
       .single()
 
     if (error) throw error
+    const anyData: any = data
     return {
-      ...data,
-      cashierName: data.users?.name || "Unknown",
+      ...anyData,
+      cashierName: anyData.users?.name || "Unknown",
       items:
-        data.transaction_items?.map((item: any) => ({
+        anyData.transaction_items?.map((item: any) => ({
           productId: item.product_id,
           productName: item.products?.name || "Unknown",
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
+          price: item.unit_price,
+          subtotal: item.total_price,
         })) || [],
     }
   },
@@ -271,10 +272,10 @@ export const transactionService = {
       subtotal: number
     }>
   }) {
-    const subtotal = transactionData.items.reduce((sum, item) => sum + item.subtotal, 0)
-    const tax = subtotal * 0.1
-    const total = subtotal + tax
-    const change = transactionData.amountPaid - total
+    const subtotal = transactionData.items.reduce((sum, item) => sum + Math.floor(item.subtotal || 0), 0)
+    const tax = Math.floor(subtotal * 0.1)
+    const total = Math.max(0, subtotal + tax)
+    const change = Math.max(0, transactionData.amountPaid - total)
 
     // Validate each product_id exists and stock is sufficient
     for (const item of transactionData.items) {
@@ -314,7 +315,7 @@ export const transactionService = {
           customer_name: transactionData.customerName,
           payment_method: transactionData.paymentMethod,
           payment_amount: transactionData.amountPaid,
-          change_amount: Math.max(0, change),
+          change_amount: change,
           total_amount: total,
           tax_amount: tax,
           status: "completed",
@@ -328,11 +329,11 @@ export const transactionService = {
 
     // Create transaction items
     const transactionItems = transactionData.items.map((item) => ({
-      transaction_id: transaction.id,
+      transaction_id: (transaction as any).id,
       product_id: item.productId,
       quantity: item.quantity,
-      unit_price: item.price,
-      total_price: item.subtotal,
+      unit_price: Math.floor(item.price || 0),
+      total_price: Math.floor(item.subtotal || 0),
     }))
 
     const { error: itemsError } = await supabase.from("transaction_items").insert(transactionItems)
@@ -342,12 +343,11 @@ export const transactionService = {
     // Update product stock
     for (const item of transactionData.items) {
       const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
-
       if (product) {
         await supabase
           .from("products")
           .update({
-            stock: product.stock - item.quantity,
+            stock: (product as any).stock - item.quantity,
             updated_at: new Date().toISOString(),
           })
           .eq("id", item.productId)
@@ -401,14 +401,14 @@ export const dashboardService = {
     // Get today's transactions
     const { data: todayTransactions } = await supabase
       .from("transactions")
-      .select("total, transaction_items(quantity)")
+      .select("total_amount, transaction_items(quantity)")
       .gte("created_at", `${today}T00:00:00`)
       .lt("created_at", `${today}T23:59:59`)
 
     // Get yesterday's transactions for comparison
     const { data: yesterdayTransactions } = await supabase
       .from("transactions")
-      .select("total, transaction_items(quantity)")
+      .select("total_amount, transaction_items(quantity)")
       .gte("created_at", `${yesterday}T00:00:00`)
       .lt("created_at", `${yesterday}T23:59:59`)
 
@@ -416,21 +416,21 @@ export const dashboardService = {
     const { data: products } = await supabase.from("products").select("stock")
 
     // Calculate stats
-    const todayTotal = todayTransactions?.reduce((sum, t) => sum + t.total, 0) || 0
-    const yesterdayTotal = yesterdayTransactions?.reduce((sum, t) => sum + t.total, 0) || 0
+    const todayTotal = todayTransactions?.reduce((sum, t: any) => sum + (t.total_amount || 0), 0) || 0
+    const yesterdayTotal = yesterdayTransactions?.reduce((sum, t: any) => sum + (t.total_amount || 0), 0) || 0
 
     const todayProductsSold =
       todayTransactions?.reduce(
-        (sum, t) => sum + (t.transaction_items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0),
+        (sum, t: any) => sum + ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
     const yesterdayProductsSold =
       yesterdayTransactions?.reduce(
-        (sum, t) => sum + (t.transaction_items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0),
+        (sum, t: any) => sum + ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
 
-    const totalStock = products?.reduce((sum, p) => sum + p.stock, 0) || 0
+    const totalStock = products?.reduce((sum, p: any) => sum + (p.stock || 0), 0) || 0
     const todayTransactionCount = todayTransactions?.length || 0
     const yesterdayTransactionCount = yesterdayTransactions?.length || 0
 
@@ -463,7 +463,7 @@ export const reportsService = {
 
     const { data, error } = await supabase
       .from("transactions")
-      .select("created_at, total")
+      .select("created_at, total_amount")
       .gte("created_at", `${startDate}T00:00:00`)
       .order("created_at")
 
@@ -472,11 +472,11 @@ export const reportsService = {
     // Group by date
     const salesByDate = data?.reduce(
       (acc, transaction) => {
-        const date = transaction.created_at.split("T")[0]
+        const date = (transaction as any).created_at.split("T")[0]
         if (!acc[date]) {
           acc[date] = { totalSales: 0, totalTransactions: 0 }
         }
-        acc[date].totalSales += transaction.total
+        acc[date].totalSales += (transaction as any).total_amount || 0
         acc[date].totalTransactions += 1
         return acc
       },
@@ -497,31 +497,32 @@ export const reportsService = {
       .select(`
         product_id,
         quantity,
-        price,
-        subtotal,
+        unit_price,
+        total_price,
         products(name, categories(name))
       `)
-      .order("subtotal", { ascending: false })
+      .order("total_price", { ascending: false })
 
     if (error) throw error
 
     // Group by product
     const productStats = data?.reduce(
       (acc, item) => {
-        const productId = item.product_id
+        const anyItem: any = item
+        const productId = anyItem.product_id
         if (!acc[productId]) {
           acc[productId] = {
             productId,
-            productName: item.products?.name || "Unknown",
-            category: item.products?.categories?.name || "Unknown",
+            productName: anyItem.products?.name || "Unknown",
+            category: anyItem.products?.categories?.name || "Unknown",
             totalSold: 0,
             revenue: 0,
             profit: 0, // This would need cost data
           }
         }
-        acc[productId].totalSold += item.quantity
-        acc[productId].revenue += item.subtotal
-        acc[productId].profit += item.subtotal * 0.2 // Assume 20% profit margin
+        acc[productId].totalSold += anyItem.quantity
+        acc[productId].revenue += anyItem.total_price
+        acc[productId].profit += anyItem.total_price * 0.2 // Assume 20% profit margin
         return acc
       },
       {} as Record<string, any>,

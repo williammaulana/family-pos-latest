@@ -208,6 +208,22 @@ const migrations: Migration[] = [
       ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata TEXT NULL;
     `,
   },
+  {
+    id: 8,
+    name: "set_demo_users_password_to_password123",
+    sql: `
+      -- Update demo users to use 'password123' (Laravel-style $2y$ bcrypt hash)
+      UPDATE users 
+      SET password_hash = '$2y$10$2LsVYo6Mid1LkohJdUDMeeLKvS5eiU5MsP/mnouNEJSRQAbQgLcPC'
+      WHERE email IN (
+        'superadmin@familystore.com',
+        'admin@familystore.com',
+        'kasir1@familystore.com',
+        'kasir2@familystore.com'
+      )
+      OR password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+    `,
+  },
 ]
 
 export async function runMigrations() {

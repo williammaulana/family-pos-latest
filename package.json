@@ -53,7 +53,6 @@
     "input-otp": "latest",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.454.0",
-    "mysql2": "^3.14.3",
     "next-themes": "latest",
     "react": "^18",
     "react-day-picker": "latest",

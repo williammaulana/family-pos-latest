@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { transactionService } from "@/lib/mysql-service"
+import { transactionService } from "@/lib/supabase-service"
 
 export async function POST(request: NextRequest) {
   try {

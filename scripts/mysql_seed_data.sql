@@ -1,12 +1,18 @@
 -- MySQL Seed Data for InfinityFree
 -- Converting PostgreSQL INSERT statements to MySQL format
 
--- Insert users with explicit UUIDs
-INSERT IGNORE INTO users (id, email, name, role) VALUES
-(UUID(), 'superadmin@familystore.com', 'Super Admin', 'super_admin'),
-(UUID(), 'admin@familystore.com', 'Admin Store', 'admin'),
-(UUID(), 'kasir1@familystore.com', 'Kasir Satu', 'kasir'),
-(UUID(), 'kasir2@familystore.com', 'Kasir Dua', 'kasir');
+-- Insert users with explicit UUIDs and default password hash ("password")
+-- Note: Run migrations first so `users.password_hash` exists
+INSERT IGNORE INTO users (id, email, name, role, password_hash) VALUES
+(UUID(), 'superadmin@familystore.com', 'Super Admin', 'super_admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+(UUID(), 'admin@familystore.com', 'Admin Store', 'admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+(UUID(), 'kasir1@familystore.com', 'Kasir Satu', 'kasir', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+(UUID(), 'kasir2@familystore.com', 'Kasir Dua', 'kasir', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
+
+-- Ensure all existing users have a default password hash if missing
+UPDATE users 
+SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+WHERE password_hash IS NULL;
 
 -- Insert categories
 INSERT IGNORE INTO categories (id, name) VALUES

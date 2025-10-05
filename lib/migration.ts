@@ -279,8 +279,18 @@ export async function runMigrations() {
 
         for (const statementRaw of statements) {
           const statement = statementRaw
+
+          // Prepare a comment-stripped version for detection while preserving the original for execution
+          const statementNoComments = statement
+            // Remove block comments: /* ... */
+            .replace(/\/\*[\s\S]*?\*\//g, "")
+            // Remove single-line comments starting with -- or #
+            .replace(/(^|\n)\s*--.*(?=\n|$)/g, "$1")
+            .replace(/(^|\n)\s*#.*(?=\n|$)/g, "$1")
+            .trim()
+
           // Detect and emulate: ALTER TABLE <table> ADD COLUMN IF NOT EXISTS <column> <definition>
-          const addColIfNotExistsMatch = statement.match(
+          const addColIfNotExistsMatch = statementNoComments.match(
             /^ALTER\s+TABLE\s+([A-Za-z0-9_`]+)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([A-Za-z0-9_`]+)\s+([\s\S]+)$/i
           )
 

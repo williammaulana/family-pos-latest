@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServices, getProvider } from "@/lib/service-resolver"
+import { getServices } from "@/lib/service-resolver"
 import bcrypt from "bcryptjs"
-import { executeQuery } from "@/lib/mysql"
 
 export async function GET() {
   try {
@@ -17,21 +16,19 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { password, ...rest } = body
-    const provider = await getProvider()
-    if (password && provider === "mysql") {
+    const { userService } = await getServices()
+    const user = await userService.createUser(rest)
+    // If password provided, update password_hash in Supabase users table
+    if (password) {
       const hash = await bcrypt.hash(password, 10)
-      // Insert with password hash directly to ensure login works
-      await executeQuery(
-        "INSERT INTO users (id, email, name, role, password_hash) VALUES (UUID(), ?, ?, ?, ?)",
-        [rest.email, rest.name, rest.role, hash]
-      )
-      const users = (await executeQuery("SELECT * FROM users WHERE email = ?", [rest.email])) as any[]
-      return NextResponse.json({ success: true, data: users[0] })
-    } else {
-      const { userService } = await getServices()
-      const user = await userService.createUser(rest)
-      return NextResponse.json({ success: true, data: user })
+      const { supabase } = await import("@/lib/supabase")
+      const { error } = await supabase
+        .from("users")
+        .update({ password_hash: hash, updated_at: new Date().toISOString() })
+        .eq("id", user.id)
+      if (error) throw error
     }
+    return NextResponse.json({ success: true, data: user })
   } catch (error) {
     return NextResponse.json({ success: false, error: "Failed to create user" }, { status: 500 })
   }
@@ -41,12 +38,16 @@ export async function PUT(request: NextRequest) {
   try {
     const { id, password, ...rest } = await request.json()
     if (!id) return NextResponse.json({ success: false, error: "User ID required" }, { status: 400 })
-    const provider = await getProvider()
-    if (password && provider === "mysql") {
-      const hash = await bcrypt.hash(password, 10)
-      await executeQuery("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?", [hash, id])
-    }
     const { userService } = await getServices()
+    if (password) {
+      const hash = await bcrypt.hash(password, 10)
+      const { supabase } = await import("@/lib/supabase")
+      const { error } = await supabase
+        .from("users")
+        .update({ password_hash: hash, updated_at: new Date().toISOString() })
+        .eq("id", id)
+      if (error) throw error
+    }
     const user = await userService.updateUser(id, rest)
     return NextResponse.json({ success: true, data: user })
   } catch (error) {

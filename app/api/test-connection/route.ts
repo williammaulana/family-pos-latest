@@ -1,24 +1,34 @@
 import { NextResponse } from "next/server"
-import { testConnection } from "@/lib/mysql"
+import { supabase } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    const result = await testConnection()
-    
+    const hasUrl = !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)
+    const hasKey = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
+
+    if (!hasUrl || !hasKey) {
+      return NextResponse.json(
+        { success: false, error: "Supabase env not set" },
+        { status: 400 }
+      )
+    }
+
+    const { error } = await supabase.from("users").select("id").limit(1)
+    if (error) throw error
+
     return NextResponse.json({
-      success: result.success,
-      message: result.message,
-      config: result.config,
-      timestamp: new Date().toISOString()
+      success: true,
+      message: "Supabase reachable",
+      timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("[POS] Test connection API error:", error)
+    console.error("[POS] Supabase health API error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Test koneksi gagal",
+        error: "Supabase health check failed",
         details: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     )

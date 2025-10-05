@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
-import { getServices, getProvider } from "@/lib/service-resolver"
+import { getServices } from "@/lib/service-resolver"
 
 export async function POST(request: Request) {
   try {
     const raw = await request.json()
-    const provider = await getProvider()
 
     // Validate required fields
     const requiredFields = ["customer_name", "payment_method", "payment_amount", "cashier_id", "items"]
@@ -36,41 +35,19 @@ export async function POST(request: Request) {
     }
     
     const { transactionService } = await getServices()
-    let transaction
-    if (provider === "mysql") {
-      const mysqlPayload = {
-        customer_name: raw.customer_name ?? raw.customerName,
-        payment_method: raw.payment_method ?? raw.paymentMethod,
-        payment_amount: raw.payment_amount ?? raw.amountPaid,
-        cashier_id: raw.cashier_id ?? raw.cashierId,
-        total_amount: raw.total_amount ?? raw.totalAmount,
-        tax_amount: raw.tax_amount ?? raw.taxAmount,
-        discount_amount: raw.discount_amount ?? raw.discountAmount,
-        change_amount: raw.change_amount ?? raw.changeAmount,
-        items: (raw.items || []).map((i: any) => ({
-          product_id: i.product_id ?? i.productId,
-          quantity: i.quantity,
-          unit_price: i.unit_price ?? i.price,
-          total_price: i.total_price ?? i.subtotal,
-          discount: i.discount,
-        })),
-      }
-      transaction = await (transactionService as any).createTransaction(mysqlPayload)
-    } else {
-      const supabasePayload = {
-        customerName: raw.customer_name ?? raw.customerName,
-        paymentMethod: raw.payment_method ?? raw.paymentMethod,
-        amountPaid: raw.payment_amount ?? raw.amountPaid,
-        cashierId: raw.cashier_id ?? raw.cashierId,
-        items: (raw.items || []).map((i: any) => ({
-          productId: i.product_id ?? i.productId,
-          quantity: i.quantity,
-          price: i.unit_price ?? i.price,
-          subtotal: i.total_price ?? i.subtotal,
-        })),
-      }
-      transaction = await (transactionService as any).createTransaction(supabasePayload)
+    const supabasePayload = {
+      customerName: raw.customer_name ?? raw.customerName,
+      paymentMethod: raw.payment_method ?? raw.paymentMethod,
+      amountPaid: raw.payment_amount ?? raw.amountPaid,
+      cashierId: raw.cashier_id ?? raw.cashierId,
+      items: (raw.items || []).map((i: any) => ({
+        productId: i.product_id ?? i.productId,
+        quantity: i.quantity,
+        price: i.unit_price ?? i.price,
+        subtotal: i.total_price ?? i.subtotal,
+      })),
     }
+    const transaction = await (transactionService as any).createTransaction(supabasePayload)
     
     return NextResponse.json({
       success: true,

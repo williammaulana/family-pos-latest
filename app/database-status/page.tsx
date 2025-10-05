@@ -9,14 +9,7 @@ import { Separator } from "@/components/ui/separator"
 
 interface ConnectionStatus {
   success: boolean
-  message: string
-  config: {
-    host: string
-    port: number
-    database: string
-    user: string
-    ssl: boolean
-  }
+  message?: string
   timestamp: string
 }
 
@@ -68,19 +61,12 @@ export default function DatabaseStatusPage() {
   const runMigrations = async () => {
     setMigrating(true)
     try {
+      // Supabase migrations are applied via SQL editor/CLI; POST returns 400
       const response = await fetch('/api/migrate', { method: 'POST' })
       const data = await response.json()
       setMigrationStatus(data)
-      
-      if (data.success) {
-        // Refresh connection status after successful migration
-        await testConnection()
-      }
     } catch (error) {
-      setMigrationStatus({
-        success: false,
-        migrations: []
-      })
+      setMigrationStatus({ success: false, migrations: [] })
     }
     setMigrating(false)
   }
@@ -122,7 +108,7 @@ export default function DatabaseStatusPage() {
               )}
             </CardTitle>
             <CardDescription>
-              Informasi koneksi ke database MySQL
+              Koneksi ke Supabase Database
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -130,39 +116,15 @@ export default function DatabaseStatusPage() {
               <>
                 <Alert variant={connectionStatus.success ? "default" : "destructive"}>
                   <AlertDescription>
-                    {connectionStatus.message}
+                    {connectionStatus.message || (connectionStatus.success ? 'Supabase reachable' : 'Supabase unreachable')}
                   </AlertDescription>
                 </Alert>
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Host:</span>
-                    <span className="font-mono">{connectionStatus.config.host}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Port:</span>
-                    <span className="font-mono">{connectionStatus.config.port}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Database:</span>
-                    <span className="font-mono">{connectionStatus.config.database}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">User:</span>
-                    <span className="font-mono">{connectionStatus.config.user}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">SSL:</span>
-                    <Badge variant={connectionStatus.config.ssl ? "default" : "secondary"}>
-                      {connectionStatus.config.ssl ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Waktu Test:</span>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(connectionStatus.timestamp).toLocaleString('id-ID')}
-                    </span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Waktu Test:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(connectionStatus.timestamp).toLocaleString('id-ID')}
+                  </span>
                 </div>
               </>
             ) : (
@@ -242,40 +204,26 @@ export default function DatabaseStatusPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-2">1. MySQL Lokal</h3>
+              <h3 className="font-semibold mb-2">1. Supabase Project</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Install MySQL di komputer Anda untuk development
+                Buat project di Supabase dan ambil URL + ANON KEY
               </p>
               <ul className="text-sm space-y-1">
-                <li>• Performa sangat cepat</li>
-                <li>• Tidak perlu internet</li>
-                <li>• Full control</li>
+                <li>• Set <code>NEXT_PUBLIC_SUPABASE_URL</code> dan <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> di <code>.env.local</code></li>
+                <li>• Opsional server vars: <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code></li>
               </ul>
             </div>
             
             <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-2">2. Railway (Cloud)</h3>
+              <h3 className="font-semibold mb-2">2. Apply Migrations</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Database cloud gratis dengan performa tinggi
+                Jalankan file SQL di folder <code>supabase/migrations</code> & <code>supabase/seed</code>
               </p>
               <ul className="text-sm space-y-1">
-                <li>• 500 jam gratis/bulan</li>
-                <li>• SSL otomatis</li>
-                <li>• Backup otomatis</li>
-              </ul>
-            </div>
-            
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-2">3. PlanetScale</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Database serverless dengan branching seperti Git
-              </p>
-              <ul className="text-sm space-y-1">
-                <li>• 1GB storage gratis</li>
-                <li>• Serverless scaling</li>
-                <li>• Zero-downtime schema</li>
+                <li>• Gunakan Supabase SQL Editor</li>
+                <li>• Urutan sesuai nama file</li>
               </ul>
             </div>
           </div>
@@ -283,10 +231,10 @@ export default function DatabaseStatusPage() {
           <Separator />
           
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-2">File konfigurasi yang perlu diedit:</p>
+            <p className="font-medium mb-2">Konfigurasi yang perlu diset:</p>
             <ul className="space-y-1">
-              <li>• <code className="bg-muted px-1 rounded">.env.local</code> - Konfigurasi database</li>
-              <li>• Lihat folder <code className="bg-muted px-1 rounded">scripts/</code> untuk panduan lengkap</li>
+              <li>• <code className="bg-muted px-1 rounded">.env.local</code> - SUPABASE_URL dan ANON_KEY</li>
+              <li>• Lihat folder <code className="bg-muted px-1 rounded">supabase/</code> untuk schema & seed</li>
             </ul>
           </div>
         </CardContent>

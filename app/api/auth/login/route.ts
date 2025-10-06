@@ -23,7 +23,11 @@ export async function POST(request: NextRequest) {
 
     const user = userRow
     const storedHash = user.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
-    const isValidPassword = await bcrypt.compare(password, storedHash)
+    // Normalize PHP's $2y$ prefix to $2a$ for broad bcrypt compatibility
+    const normalizedHash = storedHash.startsWith('$2y$')
+      ? '$2a$' + storedHash.slice(4)
+      : storedHash
+    const isValidPassword = await bcrypt.compare(password, normalizedHash)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }

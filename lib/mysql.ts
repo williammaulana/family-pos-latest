@@ -1,5 +1,53 @@
 import mysql from "mysql2/promise"
 
+type AnyError = (Error & {
+  code?: string
+  errno?: number
+  fatal?: boolean
+  errors?: unknown[]
+}) | any
+
+function flattenAggregateError(error: unknown): AnyError {
+  const err = error as AnyError
+  if (err && Array.isArray(err?.errors) && err.errors.length > 0) {
+    const innerWithCode = (err.errors as AnyError[]).find((e) => e && (e.code || e.errno))
+    return (innerWithCode || err.errors[0]) as AnyError
+  }
+  return err
+}
+
+function toFriendlyDbError(error: unknown, context: "connect" | "query" | "ping" = "connect"): Error {
+  const primary = flattenAggregateError(error)
+  const rawMessage = (primary?.message || String(primary || error || "")) as string
+  const lower = rawMessage.toLowerCase()
+  const code = (primary?.code || "").toString()
+
+  if (code === "ECONNREFUSED" || lower.includes("econnrefused")) {
+    return new Error(
+      `Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
+        `Pastikan server MySQL berjalan, port terbuka, dan kredensial benar. ` +
+        `Periksa DB_HOST/DB_PORT atau jalankan database terlebih dahulu.`
+    )
+  }
+  if (code === "ETIMEDOUT" || lower.includes("etimedout") || lower.includes("timed out") || lower.includes("timeout")) {
+    return new Error(
+      `Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. ` +
+        `Periksa firewall/jaringan atau gunakan host yang benar (mis. host Docker/cloud).`
+    )
+  }
+  if (code === "EAI_AGAIN" || code === "ENOTFOUND" || lower.includes("eai_again") || lower.includes("enotfound")) {
+    return new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa nilai DB_HOST.`)
+  }
+  if (lower.includes("access denied") || code === "ER_ACCESS_DENIED_ERROR") {
+    return new Error(`Akses ditolak. Periksa username dan password database.`)
+  }
+  if (lower.includes("unknown database") || code === "ER_BAD_DB_ERROR") {
+    return new Error(`Database '${dbConfig.database}' tidak ditemukan. Pastikan database sudah dibuat.`)
+  }
+
+  return primary instanceof Error ? primary : new Error(rawMessage)
+}
+
 // Konfigurasi database yang fleksibel untuk berbagai provider
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
@@ -40,31 +88,7 @@ export async function getConnection() {
       console.log(`[POS] MySQL connected successfully to ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`)
     } catch (error) {
       console.error("[POS] MySQL connection failed:", error)
-      
-      // Berikan pesan error yang lebih informatif
-      if (error instanceof Error) {
-        const message = error.message || String(error)
-        if (message.includes('ECONNREFUSED')) {
-          throw new Error(
-            `Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
-            `Pastikan server MySQL berjalan dan dapat diakses. ` +
-            `Periksa DB_HOST/DB_PORT atau jalankan database terlebih dahulu.`
-          )
-        } else if (message.includes('ETIMEDOUT')) {
-          throw new Error(
-            `Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. ` +
-            `Periksa firewall, jaringan, atau gunakan host yang benar (mis. host Docker atau cloud).`
-          )
-        } else if (message.includes('EAI_AGAIN') || message.includes('ENOTFOUND')) {
-          throw new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa nilai DB_HOST.`)
-        }
-        if (message.includes('Access denied')) {
-          throw new Error(`Akses ditolak. Periksa username dan password database.`)
-        } else if (message.includes('Unknown database')) {
-          throw new Error(`Database '${dbConfig.database}' tidak ditemukan. Pastikan database sudah dibuat.`)
-        }
-      }
-      throw error
+      throw toFriendlyDbError(error, "connect")
     }
   }
   return pool
@@ -83,17 +107,18 @@ export async function executeQuery(query: string, params: any[] = []) {
     console.error("[POS] Query:", query)
     console.error("[POS] Params:", params)
     
-    // Berikan pesan error yang lebih informatif
-    if (error instanceof Error) {
-      if (error.message.includes("Table") && error.message.includes("doesn't exist")) {
+    const friendly = toFriendlyDbError(error, "query")
+    const originalMsg = (error as any)?.message || ""
+    if (typeof originalMsg === "string") {
+      if (originalMsg.includes("Table") && originalMsg.includes("doesn't exist")) {
         throw new Error(`Tabel tidak ditemukan. Jalankan migration terlebih dahulu: /api/migrate`)
-      } else if (error.message.includes("Duplicate entry")) {
+      } else if (originalMsg.includes("Duplicate entry")) {
         throw new Error(`Data sudah ada. Tidak dapat menambahkan data yang sama.`)
-      } else if (error.message.includes("cannot be null")) {
+      } else if (originalMsg.includes("cannot be null")) {
         throw new Error(`Field wajib tidak boleh kosong.`)
       }
     }
-    throw error
+    throw friendly
   } finally {
     if (connection) {
       connection.release()
@@ -129,9 +154,10 @@ export async function testConnection() {
       }
     }
   } catch (error) {
+    const friendly = toFriendlyDbError(error, "ping")
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: friendly.message,
       config: {
         host: dbConfig.host,
         port: dbConfig.port,

@@ -11,37 +11,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Fetch user by email from Supabase
-    const { data: userRow, error } = await supabase
+    // Fetch basic user columns first (compatible with older schemas without password_hash)
+    const { data: basicUser, error: basicError } = await supabase
       .from('users')
-      .select('id, email, name, role, password_hash')
+      .select('id, email, name, role')
       .eq('email', email)
       .single()
 
-    if (error || !userRow) {
+    if (basicError || !basicUser) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    const user = userRow
-    const storedHash = user.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    // Try to fetch password_hash; if column missing or null, fallback to default "password"
+    let storedHash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    try {
+      const { data: pwdRow } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('id', basicUser.id)
+        .single()
+      if (pwdRow?.password_hash) {
+        storedHash = pwdRow.password_hash
+      }
+    } catch {
+      // Ignore; keep default hash
+    }
     const isValidPassword = await bcrypt.compare(password, storedHash)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
     const token = createSessionToken({
-      sub: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      sub: basicUser.id,
+      name: basicUser.name,
+      email: basicUser.email,
+      role: basicUser.role,
     })
 
     const res = NextResponse.json({
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        id: basicUser.id,
+        name: basicUser.name,
+        email: basicUser.email,
+        role: basicUser.role,
       },
     })
     res.headers.set('Set-Cookie', buildSessionCookie(token))

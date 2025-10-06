@@ -1,0 +1,192 @@
+{
+  "name": "vscode-repo-manager",
+  "displayName": "Repo Manager",
+  "description": "Manage and open your Git repositories from a dedicated view.",
+  "version": "0.0.1",
+  "publisher": "localdev",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onView:repoManager.repos",
+    "onCommand:repoManager.scanWorkspaceRepos",
+    "onCommand:repoManager.addRepo",
+    "onCommand:repoManager.cloneRepo",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "repoManager",
+          "title": "Repos",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "repoManager": [
+        {
+          "id": "repoManager.repos",
+          "name": "Repositories"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "repoManager.refresh",
+        "title": "Repo Manager: Refresh",
+        "category": "Repo Manager",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "repoManager.scanWorkspaceRepos",
+        "title": "Repo Manager: Scan Workspace for Repos",
+        "category": "Repo Manager",
+        "icon": "$(search)"
+      },
+      {
+        "command": "repoManager.addRepo",
+        "title": "Repo Manager: Add Repository Folder",
+        "category": "Repo Manager",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "repoManager.removeRepo",
+        "title": "Repo Manager: Remove Repository",
+        "category": "Repo Manager",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "repoManager.openRepo",
+        "title": "Repo Manager: Open Repository",
+        "category": "Repo Manager",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "repoManager.cloneRepo",
+        "title": "Repo Manager: Clone Repository",
+        "category": "Repo Manager",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "repoManager.fetchRepo",
+        "title": "Repo Manager: Fetch",
+        "category": "Repo Manager",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "repoManager.pullRepo",
+        "title": "Repo Manager: Pull",
+        "category": "Repo Manager",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "repoManager.pushRepo",
+        "title": "Repo Manager: Push",
+        "category": "Repo Manager",
+        "icon": "$(cloud-upload)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "repoManager.refresh",
+          "when": "view == repoManager.repos",
+          "group": "navigation"
+        },
+        {
+          "command": "repoManager.scanWorkspaceRepos",
+          "when": "view == repoManager.repos",
+          "group": "navigation"
+        },
+        {
+          "command": "repoManager.addRepo",
+          "when": "view == repoManager.repos",
+          "group": "navigation"
+        },
+        {
+          "command": "repoManager.cloneRepo",
+          "when": "view == repoManager.repos",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "repoManager.openRepo",
+          "when": "view == repoManager.repos && viewItem == repoItem",
+          "group": "inline"
+        },
+        {
+          "command": "repoManager.fetchRepo",
+          "when": "view == repoManager.repos && viewItem == repoItem",
+          "group": "2_git@1"
+        },
+        {
+          "command": "repoManager.pullRepo",
+          "when": "view == repoManager.repos && viewItem == repoItem",
+          "group": "2_git@2"
+        },
+        {
+          "command": "repoManager.pushRepo",
+          "when": "view == repoManager.repos && viewItem == repoItem",
+          "group": "2_git@3"
+        },
+        {
+          "command": "repoManager.removeRepo",
+          "when": "view == repoManager.repos && viewItem == repoItem",
+          "group": "3_cleanup"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Repo Manager",
+      "properties": {
+        "repoManager.autoScanOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Scan workspace for Git repositories on startup."
+        },
+        "repoManager.openInNewWindow": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open repositories in a new window."
+        },
+        "repoManager.includeGlobs": {
+          "type": "array",
+          "default": ["**/.git/config"],
+          "items": { "type": "string" },
+          "description": "Glob patterns to search for Git repositories."
+        },
+        "repoManager.excludeGlobs": {
+          "type": "array",
+          "default": ["**/node_modules/**", "**/.git/**", "**/out/**", "**/dist/**", "**/.next/**"],
+          "items": { "type": "string" },
+          "description": "Glob patterns to exclude when scanning."
+        }
+      }
+    }
+  },
+  "extensionKind": ["workspace"],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": "",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "echo \"No linter configured\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.6.3"
+  }
+}

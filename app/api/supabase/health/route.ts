@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { getErrorMessage } from "@/lib/utils"
 
 export async function GET() {
   try {
@@ -8,12 +9,15 @@ export async function GET() {
 
     const { error } = await supabase.from("users").select("id").limit(1)
     if (error) {
-      return NextResponse.json({ ok: false, hasEnv: { url: hasUrl, key: hasKey }, error: error.message }, { status: 500 })
+      return NextResponse.json(
+        { ok: false, hasEnv: { url: hasUrl, key: hasKey }, error: getErrorMessage(error, "Supabase error") },
+        { status: 500 }
+      )
     }
     return NextResponse.json({ ok: true, hasEnv: { url: hasUrl, key: hasKey } })
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error"
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    const message = getErrorMessage(e, "Unknown error")
+    return NextResponse.json({ ok: false, error: message || "Unknown error" }, { status: 500 })
   }
 }
 

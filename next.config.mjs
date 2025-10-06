@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Build for server runtime on a VPS
-  output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },

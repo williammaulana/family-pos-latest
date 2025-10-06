@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initializeDatabase } from '@/lib/mysql-service'
 import bcrypt from 'bcryptjs'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,54 +10,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Ensure DB is migrated and column exists
-    await initializeDatabase()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // Fetch user by email (handle older schema without password_hash)
-    const { executeQuery } = await import('@/lib/mysql')
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ error: 'Database configuration error' }, { status: 500 })
+    }
 
-    // Check if users.password_hash column exists to avoid ER_BAD_FIELD_ERROR
-    const colCheck = (await executeQuery(
-      "SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash'"
-    )) as any[]
-    const hasPasswordHash = Array.isArray(colCheck) && colCheck.length > 0 && (colCheck[0].cnt ?? 0) > 0
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    })
 
-    const results = (await executeQuery(
-      hasPasswordHash
-        ? 'SELECT id, email, name, role, password_hash FROM users WHERE email = ?'
-        : 'SELECT id, email, name, role FROM users WHERE email = ?',
-      [email]
-    )) as any[]
+    const { data: userRow, error } = await supabaseAdmin
+      .from('users')
+      .select('id, email, name, role, password_hash')
+      .eq('email', email)
+      .maybeSingle()
 
-    if (!results || results.length === 0) {
+    if (error) {
+      console.error('Database error:', error)
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    const user = results[0]
+    if (!userRow) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
 
-    // Fallback: accept default demo password if hash missing or column absent
-    const storedHash = (user as any).password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    const storedHash = userRow.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
     const isValidPassword = await bcrypt.compare(password, storedHash)
+
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+        id: userRow.id,
+        name: userRow.name,
+        email: userRow.email,
+        role: userRow.role
       }
     })
   } catch (error) {
     console.error('Login error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'
-    const lower = message.toLowerCase()
-    const isDbUnavailable =
-      lower.includes('econnrefused') ||
-      lower.includes('tidak dapat terhubung ke mysql') ||
-      lower.includes('timeout')
-    return NextResponse.json({ error: message }, { status: isDbUnavailable ? 503 : 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

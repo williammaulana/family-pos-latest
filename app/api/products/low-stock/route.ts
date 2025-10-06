@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { productService } from "@/lib/mysql-service"
+import { getServices } from "@/lib/service-resolver"
 
 export async function GET(request: NextRequest) {
   try {
+    const { productService } = await getServices()
     const products = await productService.getLowStockProducts()
     return NextResponse.json({ success: true, data: products })
   } catch (error) {

@@ -3,9 +3,9 @@ import mysql from "mysql2/promise"
 // Konfigurasi database yang fleksibel untuk berbagai provider
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "famq4413_william",
-  password: process.env.DB_PASSWORD || "15juli2001",
-  database: process.env.DB_NAME || "famq4413_family_store",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "family_store_pos",
   port: Number.parseInt(process.env.DB_PORT || "3306"),
   // SSL configuration - otomatis detect berdasarkan host
   ssl: process.env.DB_HOST?.includes('planetscale') || process.env.DB_HOST?.includes('railway') ? {

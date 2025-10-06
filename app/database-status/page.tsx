@@ -10,14 +10,9 @@ import { Separator } from "@/components/ui/separator"
 interface ConnectionStatus {
   success: boolean
   message: string
-  config: {
-    host: string
-    port: number
-    database: string
-    user: string
-    ssl: boolean
-  }
+  hasEnv?: { url: boolean; key: boolean }
   timestamp: string
+  error?: string
 }
 
 interface MigrationStatus {
@@ -121,9 +116,9 @@ export default function DatabaseStatusPage() {
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription>
-              Informasi koneksi ke database MySQL
-            </CardDescription>
+              <CardDescription>
+              Informasi koneksi ke database Supabase
+              </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {connectionStatus ? (
@@ -136,27 +131,23 @@ export default function DatabaseStatusPage() {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="font-medium">Host:</span>
-                    <span className="font-mono">{connectionStatus.config.host}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Port:</span>
-                    <span className="font-mono">{connectionStatus.config.port}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Database:</span>
-                    <span className="font-mono">{connectionStatus.config.database}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">User:</span>
-                    <span className="font-mono">{connectionStatus.config.user}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">SSL:</span>
-                    <Badge variant={connectionStatus.config.ssl ? "default" : "secondary"}>
-                      {connectionStatus.config.ssl ? "Aktif" : "Tidak Aktif"}
+                    <span className="font-medium">Env URL set:</span>
+                    <Badge variant={connectionStatus.hasEnv?.url ? "default" : "secondary"}>
+                      {connectionStatus.hasEnv?.url ? "Yes" : "No"}
                     </Badge>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Env Key set:</span>
+                    <Badge variant={connectionStatus.hasEnv?.key ? "default" : "secondary"}>
+                      {connectionStatus.hasEnv?.key ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                  {connectionStatus.error && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Error:</span>
+                      <span className="text-sm text-red-600">{connectionStatus.error}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="font-medium">Waktu Test:</span>
                     <span className="text-sm text-muted-foreground">

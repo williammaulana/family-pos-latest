@@ -2,7 +2,7 @@ import mysql from "mysql2/promise"
 
 // Konfigurasi database yang fleksibel untuk berbagai provider
 const dbConfig = {
-  host: process.env.DB_HOST || "localhost",
+  host: process.env.DB_HOST || "127.0.0.1",
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "family_store_pos",
@@ -40,30 +40,44 @@ export async function getConnection() {
       console.log(`[POS] MySQL connected successfully to ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`)
     } catch (error) {
       console.error("[POS] MySQL connection failed:", error)
-      
-      // Berikan pesan error yang lebih informatif
-      if (error instanceof Error) {
-        const message = error.message || String(error)
-        if (message.includes('ECONNREFUSED')) {
-          throw new Error(
-            `Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
-            `Pastikan server MySQL berjalan dan dapat diakses. ` +
-            `Periksa DB_HOST/DB_PORT atau jalankan database terlebih dahulu.`
-          )
-        } else if (message.includes('ETIMEDOUT')) {
-          throw new Error(
-            `Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. ` +
-            `Periksa firewall, jaringan, atau gunakan host yang benar (mis. host Docker atau cloud).`
-          )
-        } else if (message.includes('EAI_AGAIN') || message.includes('ENOTFOUND')) {
-          throw new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa nilai DB_HOST.`)
-        }
-        if (message.includes('Access denied')) {
-          throw new Error(`Akses ditolak. Periksa username dan password database.`)
-        } else if (message.includes('Unknown database')) {
-          throw new Error(`Database '${dbConfig.database}' tidak ditemukan. Pastikan database sudah dibuat.`)
-        }
+
+      // Tangani AggregateError dari ipv6 (::1) & ipv4 (127.0.0.1) secara lebih ramah
+      const anyErr: any = error
+      const nestedErrors: any[] = Array.isArray(anyErr?.errors) ? anyErr.errors : []
+      const codes = new Set<string>([
+        ...(anyErr?.code ? [String(anyErr.code)] : []),
+        ...nestedErrors.map((e) => String(e?.code || "")),
+      ].filter(Boolean))
+
+      const message = (error instanceof Error ? error.message : String(error)) || ""
+
+      const hasRefused = codes.has("ECONNREFUSED") || message.includes("ECONNREFUSED")
+      const hasTimeout = codes.has("ETIMEDOUT") || message.includes("ETIMEDOUT")
+      const hasDns = codes.has("ENOTFOUND") || codes.has("EAI_AGAIN") || message.includes("ENOTFOUND") || message.includes("EAI_AGAIN")
+
+      if (hasRefused) {
+        const hint = dbConfig.host === "localhost" ? " Coba gunakan 127.0.0.1 untuk menghindari IPv6 (::1)." : ""
+        throw new Error(
+          `Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
+          `Pastikan server MySQL berjalan dan dapat diakses. Periksa DB_HOST/DB_PORT.` + hint
+        )
       }
+      if (hasTimeout) {
+        throw new Error(
+          `Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. ` +
+          `Periksa firewall, jaringan, atau host yang digunakan (Docker/cloud).`
+        )
+      }
+      if (hasDns) {
+        throw new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa nilai DB_HOST.`)
+      }
+      if (message.includes('Access denied')) {
+        throw new Error(`Akses ditolak. Periksa username (DB_USER) dan password (DB_PASSWORD) database.`)
+      }
+      if (message.includes('Unknown database')) {
+        throw new Error(`Database '${dbConfig.database}' tidak ditemukan. Pastikan database sudah dibuat.`)
+      }
+
       throw error
     }
   }
@@ -84,14 +98,32 @@ export async function executeQuery(query: string, params: any[] = []) {
     console.error("[POS] Params:", params)
     
     // Berikan pesan error yang lebih informatif
-    if (error instanceof Error) {
-      if (error.message.includes("Table") && error.message.includes("doesn't exist")) {
-        throw new Error(`Tabel tidak ditemukan. Jalankan migration terlebih dahulu: /api/migrate`)
-      } else if (error.message.includes("Duplicate entry")) {
-        throw new Error(`Data sudah ada. Tidak dapat menambahkan data yang sama.`)
-      } else if (error.message.includes("cannot be null")) {
-        throw new Error(`Field wajib tidak boleh kosong.`)
-      }
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const anyErr: any = error
+    const nestedErrors: any[] = Array.isArray(anyErr?.errors) ? anyErr.errors : []
+    const codes = new Set<string>([
+      ...(anyErr?.code ? [String(anyErr.code)] : []),
+      ...nestedErrors.map((e) => String(e?.code || "")),
+    ].filter(Boolean))
+
+    if (errMsg.includes("Table") && errMsg.includes("doesn't exist")) {
+      throw new Error(`Tabel tidak ditemukan. Jalankan migration terlebih dahulu: /api/migrate`)
+    }
+    if (errMsg.includes("Duplicate entry")) {
+      throw new Error(`Data sudah ada. Tidak dapat menambahkan data yang sama.`)
+    }
+    if (errMsg.includes("cannot be null")) {
+      throw new Error(`Field wajib tidak boleh kosong.`)
+    }
+    if (codes.has("ECONNREFUSED") || errMsg.includes("ECONNREFUSED")) {
+      const hint = dbConfig.host === "localhost" ? " Coba gunakan 127.0.0.1 untuk menghindari IPv6 (::1)." : ""
+      throw new Error(`Tidak dapat terhubung ke MySQL di ${dbConfig.host}:${dbConfig.port}.` + hint)
+    }
+    if (codes.has("ETIMEDOUT") || errMsg.includes("ETIMEDOUT")) {
+      throw new Error(`Koneksi ke MySQL timeout ke ${dbConfig.host}:${dbConfig.port}. Periksa jaringan/firewall.`)
+    }
+    if (codes.has("ENOTFOUND") || codes.has("EAI_AGAIN") || errMsg.includes("ENOTFOUND") || errMsg.includes("EAI_AGAIN")) {
+      throw new Error(`Database host tidak ditemukan atau DNS bermasalah: ${dbConfig.host}. Periksa DB_HOST.`)
     }
     throw error
   } finally {

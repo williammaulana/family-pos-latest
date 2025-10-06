@@ -210,7 +210,19 @@ const migrations: Migration[] = [
   },
 ]
 
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return Boolean(url && (anon || service))
+}
+
 export async function runMigrations() {
+  // Skip MySQL migrations when Supabase is configured
+  if (isSupabaseConfigured() && process.env.ALLOW_MYSQL_MIGRATIONS !== "1") {
+    console.log("[v0] Supabase detected - skipping MySQL migrations")
+    return
+  }
   try {
     console.log("[v0] Starting database migrations...")
 

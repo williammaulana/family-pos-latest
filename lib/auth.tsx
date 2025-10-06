@@ -19,12 +19,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored user session
+    // Check for stored user session. If missing, try fetching from server cookie.
     const storedUser = localStorage.getItem("pos_user")
     if (storedUser) {
       setUser(JSON.parse(storedUser))
+      setIsLoading(false)
+      return
     }
-    setIsLoading(false)
+
+    const fetchFromCookie = async () => {
+      try {
+        const response = await fetch('/api/auth/me', { cache: 'no-store' })
+        if (response.ok) {
+          const data = await response.json()
+          if (data?.user) {
+            setUser(data.user)
+            localStorage.setItem("pos_user", JSON.stringify(data.user))
+          } else {
+            setUser(null)
+          }
+        } else {
+          setUser(null)
+        }
+      } catch {
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchFromCookie()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -63,6 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem("pos_user")
+    try {
+      // Fire-and-forget; we do not need to await
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    } catch {
+      // ignore
+    }
   }
 
   return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>

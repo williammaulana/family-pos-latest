@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
+import { createSessionToken, buildSessionCookie } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,14 +29,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    return NextResponse.json({
+    const token = createSessionToken({
+      sub: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    })
+
+    const res = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     })
+    res.headers.set('Set-Cookie', buildSessionCookie(token))
+    return res
   } catch (error) {
     console.error('Login error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'

@@ -1,0 +1,174 @@
+{
+    "name": "repo-manager",
+    "displayName": "Repository Manager",
+    "description": "Manage multiple Git repositories from VS Code",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "icon": "images/icon.svg",
+    "main": "./out/extension.js",
+    "activationEvents": [],
+    "contributes": {
+        "commands": [
+            {
+                "command": "repoManager.refresh",
+                "title": "Refresh Repositories",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "repoManager.openRepo",
+                "title": "Open Repository",
+                "icon": "$(folder-opened)"
+            },
+            {
+                "command": "repoManager.openInNewWindow",
+                "title": "Open in New Window",
+                "icon": "$(window)"
+            },
+            {
+                "command": "repoManager.openInTerminal",
+                "title": "Open in Terminal",
+                "icon": "$(terminal)"
+            },
+            {
+                "command": "repoManager.cloneRepo",
+                "title": "Clone Repository",
+                "icon": "$(repo-clone)"
+            },
+            {
+                "command": "repoManager.addFolder",
+                "title": "Add Repository Folder",
+                "icon": "$(new-folder)"
+            },
+            {
+                "command": "repoManager.removeRepo",
+                "title": "Remove from List",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "repoManager.showRepoDetails",
+                "title": "Show Repository Details",
+                "icon": "$(info)"
+            }
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "repoManagerView",
+                    "name": "Repository Manager",
+                    "icon": "$(source-control)",
+                    "contextualTitle": "Repository Manager"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "repoManager.refresh",
+                    "when": "view == repoManagerView",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "repoManager.addFolder",
+                    "when": "view == repoManagerView",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "repoManager.cloneRepo",
+                    "when": "view == repoManagerView",
+                    "group": "navigation@3"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "repoManager.openRepo",
+                    "when": "view == repoManagerView && viewItem == repository",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "repoManager.openInNewWindow",
+                    "when": "view == repoManagerView && viewItem == repository",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "repoManager.openInTerminal",
+                    "when": "view == repoManagerView && viewItem == repository",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "repoManager.showRepoDetails",
+                    "when": "view == repoManagerView && viewItem == repository",
+                    "group": "info@1"
+                },
+                {
+                    "command": "repoManager.removeRepo",
+                    "when": "view == repoManagerView && viewItem == repository",
+                    "group": "danger@1"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Repository Manager",
+            "properties": {
+                "repoManager.scanPaths": {
+                    "type": "array",
+                    "default": [
+                        "~/projects",
+                        "~/repos",
+                        "~/work"
+                    ],
+                    "description": "Paths to scan for Git repositories",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "repoManager.ignoredFolders": {
+                    "type": "array",
+                    "default": [
+                        "node_modules",
+                        ".git",
+                        "dist",
+                        "build"
+                    ],
+                    "description": "Folders to ignore when scanning for repositories",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "repoManager.maxDepth": {
+                    "type": "number",
+                    "default": 3,
+                    "description": "Maximum depth to scan for repositories"
+                },
+                "repoManager.showRepoStatus": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show repository status (branch, changes) in the tree view"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/node": "^16.18.126",
+        "@types/vscode": "^1.104.0",
+        "@typescript-eslint/eslint-plugin": "^5.62.0",
+        "@typescript-eslint/parser": "^5.62.0",
+        "eslint": "^8.57.1",
+        "typescript": "^4.9.5"
+    },
+    "dependencies": {
+        "simple-git": "^3.28.0"
+    }
+}

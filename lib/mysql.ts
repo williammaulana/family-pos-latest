@@ -26,7 +26,22 @@ const dbConfig = {
 // Connection pool untuk performa lebih baik
 let pool: mysql.Pool | null = null
 
+// Short-circuit MySQL when Supabase is configured to avoid accidental connections
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return Boolean(url && (anon || service))
+}
+
 export async function getConnection() {
+  // If Supabase envs are present, disable MySQL unless explicitly allowed
+  if (isSupabaseConfigured() && process.env.ALLOW_MYSQL !== "1") {
+    throw new Error(
+      "MySQL is disabled because Supabase environment variables are configured. " +
+        "Use Supabase services instead. If you really need MySQL for local tasks, set ALLOW_MYSQL=1."
+    )
+  }
   if (!pool) {
     try {
       // Gunakan connection pool untuk performa lebih baik

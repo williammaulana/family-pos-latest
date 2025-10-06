@@ -10,11 +10,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
+    // Normalize input
+    const normalizedEmail = String(email).trim().toLowerCase()
+
     // Fetch user by email from Supabase
     const { data: userRow, error } = await supabase
       .from('users')
       .select('id, email, name, role, password_hash')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single()
 
     if (error || !userRow) {
@@ -22,8 +25,18 @@ export async function POST(request: NextRequest) {
     }
 
     const user = userRow
-    const storedHash = user.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
-    const isValidPassword = await bcrypt.compare(password, storedHash)
+
+    // Support bcrypt hash variants like $2y$ (common from PHP)
+    const rawHash = user.password_hash
+    const normalizedHash = rawHash && rawHash.startsWith('$2y$')
+      ? ('$2a$' + rawHash.slice(4))
+      : rawHash
+
+    if (!normalizedHash) {
+      return NextResponse.json({ error: 'User has no password set' }, { status: 401 })
+    }
+
+    const isValidPassword = await bcrypt.compare(String(password), normalizedHash)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }

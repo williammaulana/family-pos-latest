@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -75,6 +76,13 @@ export function LoginForm() {
             <p className="text-xs mt-1">Password: password123</p>
           </div>
         </CardContent>
+        <div className="px-6 pb-6">
+          <div className="mt-2 text-center">
+            <Link href="/university" className="text-sm text-primary hover:underline">
+              Lihat situs universitas
+            </Link>
+          </div>
+        </div>
       </Card>
     </div>
   )

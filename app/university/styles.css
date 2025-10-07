@@ -1,0 +1,38 @@
+/* Scoped styles for the public university site. These apply within #university-app only. */
+
+#university-app {
+  /* base font size controlled by toolbar, defaults to 100% */
+  font-size: 100%;
+}
+
+#university-app[data-readable-font] {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+#university-app[data-contrast="high"] {
+  color: #fff;
+  background-color: #000;
+}
+
+#university-app[data-contrast="high"] a { color: #ffeb3b; text-decoration: underline; }
+
+#university-app[data-contrast="negative"] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+#university-app[data-links-underline] a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+#university-app[data-light-bg] {
+  background-color: #ffffff;
+  color: #111827; /* gray-900 */
+}
+
+/* Ensure focus visibility */
+#university-app a:focus {
+  outline: 3px solid #2563eb; /* blue-600 */
+  outline-offset: 2px;
+}

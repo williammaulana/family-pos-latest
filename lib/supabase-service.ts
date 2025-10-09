@@ -18,7 +18,11 @@ export const userService = {
   },
 
   async createUser(userData: Omit<User, "id" | "createdAt" | "updatedAt">) {
-    const { data, error } = await supabase.from("users").insert([userData as any]).select().single()
+    const { data, error } = await supabase
+      .from("users")
+      .insert([userData as any])
+      .select()
+      .single()
 
     if (error) throw error
     return data
@@ -96,15 +100,34 @@ export const productService = {
   },
 
   async createProduct(productData: Omit<Product, "id" | "createdAt" | "updatedAt">) {
-    // Get category ID by name
-    const { data: category } = await supabase.from("categories").select("id").eq("name", productData.category).single()
+    // Normalisasi nama kategori
+    const catName = (productData.category || "").toString().trim()
+
+    let categoryId: string | undefined
+    if (catName) {
+      // coba ambil kategori bila ada
+      const { data: existingCat } = await supabase.from("categories").select("id").eq("name", catName).maybeSingle()
+
+      if (existingCat?.id) {
+        categoryId = existingCat.id
+      } else {
+        // jika belum ada, buat kategori baru
+        const { data: newCat, error: insertCatErr } = await supabase
+          .from("categories")
+          .insert([{ name: catName }])
+          .select("id")
+          .single()
+        if (insertCatErr) throw insertCatErr
+        categoryId = newCat?.id
+      }
+    }
 
     const { data, error } = await supabase
       .from("products")
       .insert([
         {
           ...productData,
-          category_id: category?.id,
+          category_id: categoryId,
         },
       ])
       .select(`
@@ -287,7 +310,9 @@ export const transactionService = {
         throw new Error(`Invalid product ID: ${item.productId}. Product must exist in the products table.`)
       }
       if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for product ID: ${item.productId}. Available stock: ${product.stock}, requested: ${item.quantity}`)
+        throw new Error(
+          `Insufficient stock for product ID: ${item.productId}. Available stock: ${product.stock}, requested: ${item.quantity}`,
+        )
       }
     }
 
@@ -421,12 +446,16 @@ export const dashboardService = {
 
     const todayProductsSold =
       todayTransactions?.reduce(
-        (sum, t: any) => sum + ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
+        (sum, t: any) =>
+          sum +
+          ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
     const yesterdayProductsSold =
       yesterdayTransactions?.reduce(
-        (sum, t: any) => sum + ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
+        (sum, t: any) =>
+          sum +
+          ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
 
@@ -540,7 +569,9 @@ export const formatCurrency = (amount: number): string => {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(intAmount).replace("Rp.", "Rp")
+  })
+    .format(intAmount)
+    .replace("Rp.", "Rp")
 }
 
 // Helper function to format date (keeping from mock-data)

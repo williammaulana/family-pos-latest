@@ -1,4 +1,3 @@
-
 ALTER TABLE `transactions`
 ADD COLUMN `discount_amount` INTEGER NOT NULL DEFAULT 0,
 MODIFY COLUMN `payment_method` ENUM('tunai', 'kartu_debit', 'kartu_kredit', 'e_wallet', 'qris', 'transfer_bank') NOT NULL;

@@ -27,21 +27,21 @@ Railway adalah platform cloud yang menyediakan MySQL gratis dengan performa baik
 ### 4. Update .env.local
 Ganti bagian Railway di file .env.local dengan kredensial yang didapat:
 
-```env
+\`\`\`env
 # === RAILWAY MYSQL (cloud gratis) ===
 DB_HOST=containers-us-west-xxx.railway.app
 DB_USER=root
 DB_PASSWORD=your_railway_password
 DB_NAME=railway
 DB_PORT=xxxx
-```
+\`\`\`
 
 ### 5. Test Koneksi
 Jalankan migration untuk test koneksi:
-```bash
+\`\`\`bash
 npm run dev
 # Buka http://localhost:3000/api/migrate di browser
-```
+\`\`\`
 
 ## Keuntungan Railway:
 - ✅ Gratis 500 jam per bulan

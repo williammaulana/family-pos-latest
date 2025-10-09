@@ -11,30 +11,30 @@
 4. Set password root (contoh: `root123`)
 
 #### macOS:
-```bash
+\`\`\`bash
 # Menggunakan Homebrew
 brew install mysql
 brew services start mysql
 
 # Set password root
 mysql_secure_installation
-```
+\`\`\`
 
 #### Ubuntu/Debian:
-```bash
+\`\`\`bash
 sudo apt update
 sudo apt install mysql-server
 sudo mysql_secure_installation
-```
+\`\`\`
 
 ### Setup Database:
 1. Login ke MySQL:
-```bash
+\`\`\`bash
 mysql -u root -p
-```
+\`\`\`
 
 2. Jalankan script setup:
-```sql
+\`\`\`sql
 -- Buat database
 CREATE DATABASE family_store_pos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -45,17 +45,17 @@ FLUSH PRIVILEGES;
 
 -- Keluar
 EXIT;
-```
+\`\`\`
 
 3. Update file .env.local:
-```env
+\`\`\`env
 # === LOCAL MYSQL ===
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=root123
 DB_NAME=family_store_pos
 DB_PORT=3306
-```
+\`\`\`
 
 ## Pilihan 2: Docker MySQL (Mudah & Portable)
 
@@ -64,7 +64,7 @@ DB_PORT=3306
 - Linux: `sudo apt install docker.io`
 
 ### Jalankan MySQL Container:
-```bash
+\`\`\`bash
 # Buat dan jalankan MySQL container
 docker run --name mysql-pos \
   -e MYSQL_ROOT_PASSWORD=root123 \
@@ -74,17 +74,17 @@ docker run --name mysql-pos \
 
 # Cek status container
 docker ps
-```
+\`\`\`
 
 ### Update .env.local:
-```env
+\`\`\`env
 # === DOCKER MYSQL ===
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=root123
 DB_NAME=family_store_pos
 DB_PORT=3306
-```
+\`\`\`
 
 ## Test Koneksi:
 1. Jalankan aplikasi: `npm run dev`

@@ -80,4 +80,3 @@ CREATE POLICY IF NOT EXISTS "Admin can insert stock history"
       AND users.role IN ('admin', 'super_admin')
     )
   );
-

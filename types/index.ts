@@ -2,7 +2,15 @@ export interface User {
   id: string
   name: string
   email: string
-  role: "super_admin" | "admin" | "kasir"
+  role:
+    | "superadmin"
+    | "admin_gudang"
+    | "admin_toko"
+    | "staff"
+    // kompatibilitas lama
+    | "super_admin"
+    | "admin"
+    | "kasir"
   avatar?: string
 }
 
@@ -39,7 +47,7 @@ export interface TransactionItem {
   price: number
   subtotal: number
   discount?: number
-  discountType?: 'percentage' | 'fixed'
+  discountType?: "percentage" | "fixed"
 }
 
 export interface DashboardStats {
@@ -54,13 +62,13 @@ export interface DashboardStats {
 }
 
 export interface Discount {
-  type: 'percentage' | 'fixed'
+  type: "percentage" | "fixed"
   value: number
   description?: string
 }
 
 export interface TransactionDiscount {
-  type: 'percentage' | 'fixed'
+  type: "percentage" | "fixed"
   value: number
   description?: string
 }
@@ -71,6 +79,6 @@ export interface StockHistory {
   productName: string
   quantityChange: number
   reason: string
-  type: 'in' | 'out' | 'adjustment'
+  type: "in" | "out" | "adjustment"
   createdAt: Date
 }

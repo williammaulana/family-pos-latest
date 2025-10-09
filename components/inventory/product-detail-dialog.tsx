@@ -73,4 +73,3 @@ export function ProductDetailDialog({ product, isOpen, onClose }: ProductDetailD
     </Dialog>
   )
 }
-

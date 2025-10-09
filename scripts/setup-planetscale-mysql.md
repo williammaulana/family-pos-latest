@@ -29,7 +29,7 @@ PlanetScale adalah database MySQL serverless yang sangat cepat dan mudah digunak
 ### 5. Update .env.local
 Ganti bagian PlanetScale di file .env.local:
 
-```env
+\`\`\`env
 # === PLANETSCALE (cloud gratis dengan SSL) ===
 DB_HOST=aws.connect.psdb.cloud
 DB_USER=your_username
@@ -37,10 +37,10 @@ DB_PASSWORD=your_password
 DB_NAME=your_database_name
 DB_PORT=3306
 DATABASE_URL=mysql://username:password@host:port/database?sslaccept=strict
-```
+\`\`\`
 
 ### 6. Install PlanetScale CLI (Opsional)
-```bash
+\`\`\`bash
 # macOS
 brew install planetscale/tap/pscale
 
@@ -49,13 +49,13 @@ scoop install pscale
 
 # Linux
 curl -fsSL https://get.planetscale.com/install.sh | bash
-```
+\`\`\`
 
 ### 7. Test Koneksi
-```bash
+\`\`\`bash
 npm run dev
 # Buka http://localhost:3000/api/migrate
-```
+\`\`\`
 
 ## Keuntungan PlanetScale:
 - ✅ Gratis 1 database dengan 1GB storage

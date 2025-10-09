@@ -72,33 +72,86 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
     }
   }
 
+  function normalizeHeader(s: string) {
+    return (
+      s
+        ?.toString()
+        // hapus karakter tak terlihat (BOM, zero-width joiner/space)
+        .replace(/^[\uFEFF]/, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        // hapus non-breaking space dari Excel
+        .replace(/\u00A0/g, " ")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "_")
+    )
+  }
+
+  const headerAliases: Record<string, string[]> = {
+    name: ["name", "nama", "nama_produk", "product_name"],
+    sku: ["sku", "kode", "kode_barang", "kodeproduk", "barcode", "kode_barcode"],
+    category: ["category", "kategori", "kategori_produk"],
+    price: ["price", "harga", "harga_jual", "harga_produk"],
+    stock: ["stock", "stok", "qty", "jumlah", "jumlah_stok"],
+    min_stock: ["min_stock", "stok_minimum", "stok_min", "min_stok", "minimal_stok", "minimum_stock", "minstock"],
+  }
+
+  const requiredKeys: Array<keyof typeof headerAliases> = ["name", "sku", "category", "price", "stock", "min_stock"]
+
+  const displayName: Record<keyof typeof headerAliases, string> = {
+    name: "nama",
+    sku: "sku",
+    category: "kategori",
+    price: "harga",
+    stock: "stok",
+    min_stock: "stok_minimum",
+  }
+
+  function findIndexFor(key: keyof typeof headerAliases, headers: string[]) {
+    const normalizedHeaders = headers.map((h) => normalizeHeader(h))
+    const candidates = headerAliases[key].map((h) => normalizeHeader(h))
+    return normalizedHeaders.findIndex((h) => candidates.includes(h))
+  }
+
   const validateData = (data: string[][]): string[] => {
     const errors: string[] = []
-    const headers = data[0]
+    const headers = data[0] || []
 
-    const requiredHeaders = ["name", "sku", "category", "price", "stock", "min_stock"]
-    const missingHeaders = requiredHeaders.filter((header) => !headers.some((h) => h.toLowerCase().includes(header)))
+    // Debugging aid: see raw and normalized headers in logs
+    // Remove after verification if desired.
+    try {
+      const normalized = headers.map((h) => normalizeHeader(h))
+      console.log("[v0] Import headers raw:", headers)
+      console.log("[v0] Import headers normalized:", normalized)
+    } catch {}
 
-    if (missingHeaders.length > 0) {
-      errors.push(`Missing required columns: ${missingHeaders.join(", ")}`)
+    const missing: string[] = []
+    for (const k of requiredKeys) {
+      if (findIndexFor(k, headers) === -1) {
+        missing.push(displayName[k])
+      }
+    }
+    if (missing.length > 0) {
+      errors.push(`Kolom wajib tidak ditemukan: ${missing.join(", ")}`)
     }
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i]
       if (row.length !== headers.length) {
-        errors.push(`Row ${i + 1}: Column count mismatch`)
+        errors.push(`Baris ${i + 1}: Jumlah kolom tidak sesuai`)
       }
 
-      // Validate price and stock are numbers
-      const priceIndex = headers.findIndex((h) => h.toLowerCase().includes("price"))
-      const stockIndex = headers.findIndex((h) => h.toLowerCase().includes("stock"))
+      const priceIndex = findIndexFor("price", headers)
+      const stockIndex = findIndexFor("stock", headers)
 
       if (priceIndex >= 0 && isNaN(Number(row[priceIndex]))) {
-        errors.push(`Row ${i + 1}: Invalid price value`)
+        errors.push(`Baris ${i + 1}: Nilai harga tidak valid`)
       }
-
       if (stockIndex >= 0 && isNaN(Number(row[stockIndex]))) {
-        errors.push(`Row ${i + 1}: Invalid stock value`)
+        errors.push(`Baris ${i + 1}: Nilai stok tidak valid`)
       }
     }
 
@@ -143,12 +196,12 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
     }
 
     const headers = parsed[0]
-    const nameIndex = headers.findIndex((h) => h.toLowerCase().includes("name"))
-    const skuIndex = headers.findIndex((h) => h.toLowerCase().includes("sku"))
-    const categoryIndex = headers.findIndex((h) => h.toLowerCase().includes("category"))
-    const priceIndex = headers.findIndex((h) => h.toLowerCase().includes("price"))
-    const stockIndex = headers.findIndex((h) => h.toLowerCase().includes("stock"))
-    const minStockIndex = headers.findIndex((h) => h.toLowerCase().includes("min_stock"))
+    const nameIndex = findIndexFor("name", headers)
+    const skuIndex = findIndexFor("sku", headers)
+    const categoryIndex = findIndexFor("category", headers)
+    const priceIndex = findIndexFor("price", headers)
+    const stockIndex = findIndexFor("stock", headers)
+    const minStockIndex = findIndexFor("min_stock", headers)
 
     let successCount = 0
     let errorCount = 0
@@ -164,15 +217,15 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
           stock: Number(row[stockIndex]),
           minStock: Number(row[minStockIndex]),
         }
-        await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         })
         successCount++
       } catch (error) {
         errorCount++
-        console.error(`Error importing row ${i + 1}:`, error)
+        console.error(`[v0] Error importing row ${i + 1}:`, error)
       }
     }
 
@@ -191,7 +244,7 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
 
   const downloadTemplate = (format: "csv" | "excel" = "csv") => {
     const template = [
-      ["name", "sku", "category", "price", "stock", "min_stock"],
+      ["nama", "sku", "kategori", "harga", "stok", "stok_minimum"],
       ["Contoh Produk", "SKU001", "Makanan", "15000", "100", "10"],
       ["Produk Lain", "SKU002", "Minuman", "8000", "50", "5"],
     ]
@@ -223,7 +276,9 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
             <Label htmlFor="csv-file">Pilih File</Label>
             <Input id="csv-file" type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} className="mt-1" />
             <p className="text-sm text-gray-500 mt-1">
-              File harus berformat CSV atau Excel dengan kolom: name, sku, category, price, stock, min_stock
+              {
+                "File harus berformat CSV atau Excel dengan kolom: nama (name), sku, kategori (category), harga (price), stok (stock), stok_minimum (min_stock)"
+              }
             </p>
           </div>
 

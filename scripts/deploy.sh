@@ -29,4 +29,3 @@ fi
 pm2 save
 
 echo "Deployed. App should be available on port $PORT."
-

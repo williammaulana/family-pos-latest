@@ -55,5 +55,3 @@ export async function getServices() {
 export async function getProvider(): Promise<Provider> {
   return await resolveProvider()
 }
-
-

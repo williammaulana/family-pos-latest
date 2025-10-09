@@ -42,4 +42,3 @@ ON CONFLICT (barcode) DO NOTHING;
 
 -- Optional: create a few sample transactions (without strict FK dependencies on existing random users/products)
 -- This is kept minimal; the app will create real transactions via API.
-

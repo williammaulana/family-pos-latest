@@ -119,10 +119,7 @@ begin
 end;
 $$;
 
--- Allow RPC execution from API roles
-grant execute on function public.insert_product_admin(
-  text, text, integer, integer, integer, text, text, text, integer, text, text
-) to anon, authenticated, service_role;
+-- (moved GRANT for insert_product_admin to after its definition)
 
 -- Trigger Penerimaan: saat disetujui, tambah stok di gudang penerima
 create or replace function public.trg_penerimaan_approve_sync_stock()
@@ -148,6 +145,11 @@ begin
   return new;
 end;
 $$;
+
+-- Allow RPC execution from API roles (after function is defined)
+grant execute on function public.insert_product_admin(
+  text, text, integer, integer, integer, text, text, text, integer, text, text
+) to anon, authenticated, service_role;
 
 drop trigger if exists penerimaan_approve_sync on public.penerimaan_barang;
 create trigger penerimaan_approve_sync

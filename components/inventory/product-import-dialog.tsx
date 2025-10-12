@@ -144,8 +144,8 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
         errors.push(`Baris ${i + 1}: Jumlah kolom tidak sesuai`)
       }
 
-      const priceIndex = findIndexFor("price", headers)
-      const stockIndex = findIndexFor("stock", headers)
+    const priceIndex = findIndexFor("price", headers)
+    const stockIndex = findIndexFor("stock", headers)
 
       if (priceIndex >= 0 && isNaN(Number(row[priceIndex]))) {
         errors.push(`Baris ${i + 1}: Nilai harga tidak valid`)

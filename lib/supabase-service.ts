@@ -111,35 +111,45 @@ export const productService = {
       if (existingCat?.id) {
         categoryId = existingCat.id
       } else {
-        // jika belum ada, buat kategori baru
-        const { data: newCat, error: insertCatErr } = await supabase
-          .from("categories")
-          .insert([{ name: catName }])
-          .select("id")
-          .single()
-        if (insertCatErr) throw insertCatErr
-        categoryId = newCat?.id
+        // jika belum ada, buat kategori via RPC SECURITY DEFINER untuk bypass RLS
+        const { data: newCatId, error: ensureErr } = await supabase.rpc("ensure_category_by_name", { p_name: catName })
+        if (ensureErr) throw ensureErr
+        if (!newCatId) throw new Error("Failed to create or fetch category id")
+        categoryId = newCatId as string
       }
     }
 
+    // Insert product via SECURITY DEFINER RPC to bypass RLS
+    const rpcPayload: any = {
+      p_name: productData.name,
+      p_category_name: catName,
+      p_price: Math.floor((productData as any).price || 0),
+      p_stock: Math.floor((productData as any).stock || 0),
+      p_min_stock: Math.floor((productData as any).min_stock ?? (productData as any).minStock ?? 5),
+      p_sku: (productData as any).sku ?? null,
+      p_barcode: (productData as any).barcode ?? (productData as any).sku ?? null,
+      p_image_url: (productData as any).image_url ?? (productData as any).imageUrl ?? null,
+      p_cost_price: Math.floor((productData as any).cost_price ?? (productData as any).costPrice ?? 0),
+      p_unit: (productData as any).unit ?? null,
+      p_description: (productData as any).description ?? null,
+    }
+
+    const { data: newProductId, error: rpcError } = await supabase.rpc("insert_product_admin", rpcPayload)
+    if (rpcError) throw rpcError
+
     const { data, error } = await supabase
       .from("products")
-      .insert([
-        {
-          ...productData,
-          category_id: categoryId,
-        },
-      ])
       .select(`
         *,
         categories(name)
       `)
+      .eq("id", newProductId as any)
       .single()
 
     if (error) throw error
     return {
       ...data,
-      category: data.categories?.name || "Unknown",
+      category: (data as any).categories?.name || "Unknown",
     }
   },
 

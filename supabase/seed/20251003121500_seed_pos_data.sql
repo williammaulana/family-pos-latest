@@ -40,5 +40,26 @@ FROM (
 JOIN cat c ON c.name = p.category_name
 ON CONFLICT (barcode) DO NOTHING;
 
+-- Seed master warehouses and stores
+INSERT INTO warehouses (id, code, name, address)
+VALUES
+  (uuid_generate_v4(), 'WH-01', 'Gudang Pusat', 'Jl. Industri No. 1'),
+  (uuid_generate_v4(), 'WH-02', 'Gudang Cabang', 'Jl. Logistik No. 2')
+ON CONFLICT (code) DO NOTHING;
+
+WITH wh AS (
+  SELECT id, code FROM warehouses
+)
+INSERT INTO stores (id, code, name, address, warehouse_id)
+SELECT uuid_generate_v4(), s.code, s.name, s.address, w.id
+FROM (
+  VALUES
+    ('ST-01', 'Toko A', 'Jl. Raya 123', 'WH-01'),
+    ('ST-02', 'Toko B', 'Jl. Melati 45', 'WH-01'),
+    ('ST-03', 'Toko C', 'Jl. Mawar 67', 'WH-02')
+) s(code, name, address, wh_code)
+JOIN wh w ON w.code = s.wh_code
+ON CONFLICT (code) DO NOTHING;
+
 -- Optional: create a few sample transactions (without strict FK dependencies on existing random users/products)
 -- This is kept minimal; the app will create real transactions via API.

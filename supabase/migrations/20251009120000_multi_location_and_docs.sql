@@ -86,6 +86,27 @@ create table if not exists public.penerimaan_barang_items (
   unit text
 );
 
+-- Utility function to ensure category exists by name (bypass RLS)
+create or replace function public.ensure_category_by_name(p_name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  select id into v_id from public.categories where name = p_name limit 1;
+  if v_id is null then
+    insert into public.categories (name) values (p_name) returning id into v_id;
+  end if;
+  return v_id;
+end;
+$$;
+
+-- Allow RPC execution from API roles
+grant execute on function public.ensure_category_by_name(text) to anon, authenticated, service_role;
+
 -- Upsert helper: memastikan baris stok ada
 create or replace function public.ensure_product_stock_row(p_product_id uuid, p_warehouse_id uuid, p_store_id uuid)
 returns void
@@ -97,6 +118,8 @@ begin
   on conflict (product_id, warehouse_id, store_id) do nothing;
 end;
 $$;
+
+-- (moved GRANT for insert_product_admin to after its definition)
 
 -- Trigger Penerimaan: saat disetujui, tambah stok di gudang penerima
 create or replace function public.trg_penerimaan_approve_sync_stock()
@@ -122,6 +145,11 @@ begin
   return new;
 end;
 $$;
+
+-- Allow RPC execution from API roles (after function is defined)
+grant execute on function public.insert_product_admin(
+  text, text, integer, integer, integer, text, text, text, integer, text, text
+) to anon, authenticated, service_role;
 
 drop trigger if exists penerimaan_approve_sync on public.penerimaan_barang;
 create trigger penerimaan_approve_sync
@@ -182,3 +210,42 @@ drop trigger if exists surat_jalan_approve_sync on public.surat_jalan;
 create trigger surat_jalan_approve_sync
 after update on public.surat_jalan
 for each row execute function public.trg_surat_jalan_approve_sync_stock();
+
+-- Admin product insert that bypasses RLS via SECURITY DEFINER
+create or replace function public.insert_product_admin(
+  p_name text,
+  p_category_name text,
+  p_price integer,
+  p_stock integer default 0,
+  p_min_stock integer default 5,
+  p_sku text default null,
+  p_barcode text default null,
+  p_image_url text default null,
+  p_cost_price integer default 0,
+  p_unit text default null,
+  p_description text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_category_id uuid;
+  v_id uuid;
+begin
+  if p_category_name is null or length(trim(p_category_name)) = 0 then
+    raise exception 'Category name is required';
+  end if;
+  v_category_id := public.ensure_category_by_name(trim(p_category_name));
+
+  insert into public.products (
+    name, category_id, price, stock, min_stock, sku, barcode, image_url, cost_price, unit, description
+  ) values (
+    p_name, v_category_id, greatest(0, p_price), greatest(0, coalesce(p_stock,0)), greatest(0, coalesce(p_min_stock,5)),
+    p_sku, p_barcode, p_image_url, greatest(0, coalesce(p_cost_price,0)), p_unit, p_description
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;

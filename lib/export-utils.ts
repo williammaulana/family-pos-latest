@@ -1,11 +1,37 @@
 import * as XLSX from "xlsx"
 
+export interface ExportData {
+  headers: string[]
+  rows: (string | number)[][]
+  filename: string
+}
+
+// CSV parser that respects simple quoted fields
 export function parseCSV(csvText: string): string[][] {
-  const rows = csvText.split(/\r?\n/).filter(Boolean)
-  return rows.map((row) => {
-    // sederhana: split dengan koma, tanpa menangani escape kompleks
-    return row.split(",").map((cell) => cell.trim())
-  })
+  const lines = csvText.split(/\r?\n/)
+  const result: string[][] = []
+
+  for (const line of lines) {
+    if (!line.trim()) continue
+    const row: string[] = []
+    let current = ""
+    let inQuotes = false
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        inQuotes = !inQuotes
+      } else if (ch === "," && !inQuotes) {
+        row.push(current.trim())
+        current = ""
+      } else {
+        current += ch
+      }
+    }
+    row.push(current.trim())
+    result.push(row)
+  }
+  return result
 }
 
 export async function parseExcel(file: File): Promise<string[][]> {
@@ -17,7 +43,7 @@ export async function parseExcel(file: File): Promise<string[][]> {
   return json
 }
 
-export function exportToCSV(opts: { headers: string[]; rows: (string | number)[][]; filename: string }) {
+export function exportToCSV(opts: ExportData) {
   const { headers, rows, filename } = opts
   const lines = [headers, ...rows]
     .map((row) => row.map((c) => (typeof c === "string" && c.includes(",") ? `"${c}"` : String(c))).join(","))
@@ -33,7 +59,7 @@ export function exportToCSV(opts: { headers: string[]; rows: (string | number)[]
   URL.revokeObjectURL(url)
 }
 
-export function exportToExcel(opts: { headers: string[]; rows: (string | number)[][]; filename: string }) {
+export function exportToExcel(opts: ExportData) {
   const { headers, rows, filename } = opts
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
   const wb = XLSX.utils.book_new()

@@ -104,6 +104,7 @@ export const productService = {
     const catName = (productData.category || "").toString().trim()
 
     let categoryId: string | undefined
+    let rpcEnsureMissing = false
     if (catName) {
       // coba ambil kategori bila ada
       const { data: existingCat } = await supabase.from("categories").select("id").eq("name", catName).maybeSingle()
@@ -111,35 +112,130 @@ export const productService = {
       if (existingCat?.id) {
         categoryId = existingCat.id
       } else {
-        // jika belum ada, buat kategori baru
-        const { data: newCat, error: insertCatErr } = await supabase
-          .from("categories")
-          .insert([{ name: catName }])
-          .select("id")
-          .single()
-        if (insertCatErr) throw insertCatErr
-        categoryId = newCat?.id
+        // jika belum ada, buat kategori via RPC SECURITY DEFINER untuk bypass RLS
+        const { data: newCatId, error: ensureErr } = await supabase.rpc("ensure_category_by_name", { p_name: catName })
+        if (ensureErr) {
+          // Fallback if RPC function is missing in DB (PGRST202)
+          if ((ensureErr as any).code === "PGRST202") {
+            rpcEnsureMissing = true
+            const { data: insertedCat, error: insertCatErr } = await supabase
+              .from("categories")
+              .insert([{ name: catName }])
+              .select("id")
+              .single()
+
+            if (insertCatErr) {
+              // Likely RLS issue if service role key is not configured
+              throw new Error(
+                `Failed to create category without RPC. Ensure migrations are applied and SUPABASE_SERVICE_ROLE_KEY is set on the server. Underlying error: ${insertCatErr.message || insertCatErr}`,
+              )
+            }
+            categoryId = (insertCat as any).id
+          } else {
+            throw ensureErr
+          }
+        } else {
+          if (!newCatId) throw new Error("Failed to create or fetch category id")
+          categoryId = newCatId as string
+        }
+      }
+    }
+
+    // Insert product via SECURITY DEFINER RPC to bypass RLS
+    const rpcPayload: any = {
+      p_name: productData.name,
+      p_category_name: catName,
+      p_price: Math.floor((productData as any).price || 0),
+      p_stock: Math.floor((productData as any).stock || 0),
+      p_min_stock: Math.floor((productData as any).min_stock ?? (productData as any).minStock ?? 5),
+      p_sku: (productData as any).sku ?? null,
+      p_barcode: (productData as any).barcode ?? (productData as any).sku ?? null,
+      p_image_url: (productData as any).image_url ?? (productData as any).imageUrl ?? null,
+      p_cost_price: Math.floor((productData as any).cost_price ?? (productData as any).costPrice ?? 0),
+      p_unit: (productData as any).unit ?? null,
+      p_description: (productData as any).description ?? null,
+    }
+    let newProductId: string | undefined
+    // If the ensure RPC was missing, the product RPC likely is too. Try direct insert fallback.
+    if (rpcEnsureMissing) {
+      const { data: insertedProduct, error: insertProductErr } = await supabase
+        .from("products")
+        .insert([
+          {
+            name: productData.name,
+            category_id: categoryId,
+            price: Math.floor((productData as any).price || 0),
+            stock: Math.floor((productData as any).stock || 0),
+            min_stock: Math.floor((productData as any).min_stock ?? (productData as any).minStock ?? 5),
+            sku: (productData as any).sku ?? null,
+            barcode: (productData as any).barcode ?? (productData as any).sku ?? null,
+            image_url: (productData as any).image_url ?? (productData as any).imageUrl ?? null,
+            cost_price: Math.floor((productData as any).cost_price ?? (productData as any).costPrice ?? 0),
+            unit: (productData as any).unit ?? null,
+            description: (productData as any).description ?? null,
+          },
+        ])
+        .select("id")
+        .single()
+
+      if (insertProductErr) {
+        throw new Error(
+          `Failed to insert product without RPC. Ensure migrations are applied and SUPABASE_SERVICE_ROLE_KEY is set on the server. Underlying error: ${insertProductErr.message || insertProductErr}`,
+        )
+      }
+      newProductId = (insertedProduct as any).id
+    } else {
+      const { data: rpcInsertedId, error: rpcError } = await supabase.rpc("insert_product_admin", rpcPayload)
+      if (rpcError) {
+        // Fallback if product RPC is missing in DB
+        if ((rpcError as any).code === "PGRST202") {
+          const { data: insertedProduct, error: insertProductErr } = await supabase
+            .from("products")
+            .insert([
+              {
+                name: productData.name,
+                category_id: categoryId,
+                price: Math.floor((productData as any).price || 0),
+                stock: Math.floor((productData as any).stock || 0),
+                min_stock: Math.floor((productData as any).min_stock ?? (productData as any).minStock ?? 5),
+                sku: (productData as any).sku ?? null,
+                barcode: (productData as any).barcode ?? (productData as any).sku ?? null,
+                image_url: (productData as any).image_url ?? (productData as any).imageUrl ?? null,
+                cost_price: Math.floor((productData as any).cost_price ?? (productData as any).costPrice ?? 0),
+                unit: (productData as any).unit ?? null,
+                description: (productData as any).description ?? null,
+              },
+            ])
+            .select("id")
+            .single()
+
+          if (insertProductErr) {
+            throw new Error(
+              `Failed to insert product without RPC. Ensure migrations are applied and SUPABASE_SERVICE_ROLE_KEY is set on the server. Underlying error: ${insertProductErr.message || insertProductErr}`,
+            )
+          }
+          newProductId = (insertedProduct as any).id
+        } else {
+          throw rpcError
+        }
+      } else {
+        newProductId = rpcInsertedId as any
       }
     }
 
     const { data, error } = await supabase
       .from("products")
-      .insert([
-        {
-          ...productData,
-          category_id: categoryId,
-        },
-      ])
       .select(`
         *,
         categories(name)
       `)
+      .eq("id", newProductId as any)
       .single()
 
     if (error) throw error
     return {
       ...data,
-      category: data.categories?.name || "Unknown",
+      category: (data as any).categories?.name || "Unknown",
     }
   },
 

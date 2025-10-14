@@ -4,39 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Earthy & Natural palette */
+  --background: #F5F0E8; /* recycled paper */
+  --foreground: #6B4F4F; /* earthy brown text */
+  --card: #FAF6EF; /* lighter paper card */
+  --card-foreground: #6B4F4F;
+  --popover: #FAF6EF;
+  --popover-foreground: #6B4F4F;
+  --primary: #7A8768; /* muted olive */
+  --primary-foreground: #FCFBF7;
+  --secondary: #EDE6DC; /* parchment */
+  --secondary-foreground: #5A4545;
+  --muted: #EAE3D8;
+  --muted-foreground: #7D6C6C;
+  --accent: #C86A43; /* terracotta */
+  --accent-foreground: #FFF7F2;
+  --destructive: #B2472C;
+  --destructive-foreground: #FFF3EE;
+  --border: #E1D8CB;
+  --input: #E1D8CB;
+  --ring: #A8B094; /* sage ring */
+  --chart-1: #7A8768;
+  --chart-2: #C86A43;
+  --chart-3: #9C6B4F;
+  --chart-4: #B8A189;
+  --chart-5: #6B4F4F;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #EFE8DE;
+  --sidebar-foreground: #5E4747;
+  --sidebar-primary: #7A8768;
+  --sidebar-primary-foreground: #FCFBF7;
+  --sidebar-accent: #E5DDD1;
+  --sidebar-accent-foreground: #6B4F4F;
+  --sidebar-border: #E1D8CB;
+  --sidebar-ring: #A8B094;
 }
 
 .dark {
@@ -75,8 +76,8 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-lora);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,5 +122,31 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Subtle paper texture using layered radial dots */
+    background-image:
+      radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+      radial-gradient(rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size: 12px 12px, 24px 24px;
+    background-position: 0 0, 6px 6px;
+    background-repeat: repeat, repeat;
+  }
+}
+
+@layer utilities {
+  /* Hand-drawn sketch style for icons */
+  .sketch-icon {
+    filter: url(#paper-pencil);
+  }
+  .sketch-icon svg {
+    color: var(--foreground);
+  }
+  .sketch-icon svg path,
+  .sketch-icon svg line,
+  .sketch-icon svg polyline,
+  .sketch-icon svg polygon,
+  .sketch-icon svg circle,
+  .sketch-icon svg rect {
+    stroke-dasharray: 1.5 2.5;
+    stroke-linecap: round;
   }
 }

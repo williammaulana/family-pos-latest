@@ -81,28 +81,28 @@ export default function DashboardPage() {
                 value={formatCurrency(dashboardStats.totalSales)}
                 growth={dashboardStats.salesGrowth}
                 icon={<DollarSign className="h-6 w-6 text-white" />}
-                iconBgColor="bg-green-500"
+                iconBgColor="bg-[color:var(--primary)]"
               />
               <StatsCard
                 title="Produk Terjual"
                 value={dashboardStats.productsSold.toLocaleString("id-ID")}
                 growth={dashboardStats.productsGrowth}
                 icon={<ShoppingCart className="h-6 w-6 text-white" />}
-                iconBgColor="bg-blue-500"
+                iconBgColor="bg-[color:var(--primary)]"
               />
               <StatsCard
                 title="Stok Tersedia"
                 value={dashboardStats.availableStock.toLocaleString("id-ID")}
                 growth={dashboardStats.stockGrowth}
                 icon={<Package className="h-6 w-6 text-white" />}
-                iconBgColor="bg-purple-500"
+                iconBgColor="bg-[color:var(--primary)]"
               />
               <StatsCard
                 title="Transaksi Hari Ini"
                 value={dashboardStats.todayTransactions.toLocaleString("id-ID")}
                 growth={dashboardStats.transactionsGrowth}
                 icon={<TrendingUp className="h-6 w-6 text-white" />}
-                iconBgColor="bg-orange-500"
+                iconBgColor="bg-[color:var(--accent)]"
               />
             </>
           ) : (

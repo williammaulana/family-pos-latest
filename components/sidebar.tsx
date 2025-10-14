@@ -209,7 +209,15 @@ export function Sidebar() {
 
   return (
     <div className="w-64">
-      <SidebarContent />
+      {/* Notebook side tabs effect */}
+      <div className="relative">
+        <div className="absolute -right-3 top-24 flex flex-col gap-2 select-none" aria-hidden>
+          <span className="px-3 py-1 rounded-r-[10px] text-xs font-semibold" style={{ backgroundColor: '#E5DDD1', color: '#6B4F4F' }}>Dashboard</span>
+          <span className="px-3 py-1 rounded-r-[10px] text-xs font-semibold" style={{ backgroundColor: '#E5DDD1', color: '#6B4F4F' }}>POS</span>
+          <span className="px-3 py-1 rounded-r-[10px] text-xs font-semibold" style={{ backgroundColor: '#E5DDD1', color: '#6B4F4F' }}>Stok</span>
+        </div>
+        <SidebarContent />
+      </div>
     </div>
   )
 }

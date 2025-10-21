@@ -279,7 +279,7 @@ export interface Database {
           type: "in" | "out" | "transfer"
           quantity: number
           ref_id: string | null
-          ref_type: "penerimaan" | "surat_jalan" | "penyesuaian" | null
+          ref_type: "penerimaan" | "surat_jalan" | "penyesuaian" | "store_adjustment" | null
           created_at: string
         }
         Insert: {

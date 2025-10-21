@@ -29,7 +29,7 @@ export default function PenerimaanPage() {
     tanggal: new Date().toISOString().slice(0, 10),
     items: [],
   })
-  const canAccess = user && ["superadmin", "admin_gudang", "admin_toko"].includes(user.role as any)
+  const canAccess = user && ["superadmin", "admin_gudang"].includes(user.role as any)
 
   useEffect(() => {
     ;(async () => {

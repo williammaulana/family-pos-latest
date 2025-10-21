@@ -73,11 +73,11 @@ function pad(num: number, size = 4) {
 }
 
 export const docService = {
-  async generateNomor(prefix: "SJ" | "PN") {
+  async generateNomor(prefix: "SJ" | "PN" | "AR") {
     // format: SJ-YYYYMM-XXXX / PN-YYYYMM-XXXX
     const now = new Date()
     const ym = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}`
-    const table = prefix === "SJ" ? "surat_jalan" : "penerimaan_barang"
+    const table = prefix === "SJ" ? "surat_jalan" : prefix === "PN" ? "penerimaan_barang" : "store_adjustment_requests"
     const { data } = await supabase
       .from(table)
       .select("nomor")
@@ -168,6 +168,102 @@ export const docService = {
       .eq("id", id)
       .select()
       .single()
+    if (error) throw error
+    return data
+  },
+
+  // Store Adjustment Requests (Approval oleh toko)
+  async listAdjustRequests() {
+    const { data, error } = await supabase
+      .from("store_adjustment_requests")
+      .select(
+        "*, gudang:warehouses!store_adjustment_requests_warehouse_id_fkey(name,code), toko:stores!store_adjustment_requests_store_id_fkey(name,code)"
+      )
+      .order("created_at", { ascending: false })
+    if (error) throw error
+    return data
+  },
+
+  async getAdjustRequestItems(requestId: string) {
+    const { data, error } = await supabase
+      .from("store_adjustment_request_items")
+      .select("*, products(name, sku)")
+      .eq("request_id", requestId)
+    if (error) throw error
+    return data
+  },
+
+  async createAdjustRequest(payload: {
+    nomor: string
+    store_id: string
+    type: "increase" | "decrease"
+    tanggal: string
+    requested_by: string
+    note?: string | null
+    items: Array<{ product_id: string; quantity: number; unit?: string | null }>
+    warehouse_id?: string | null
+  }) {
+    const { items, warehouse_id, ...header } = payload
+    let whId = warehouse_id || null
+    if (!whId) {
+      const { data: storeRow } = await supabase.from("stores").select("warehouse_id").eq("id", header.store_id).single()
+      whId = (storeRow as any)?.warehouse_id || null
+    }
+    if (!whId) throw new Error("warehouse_id tidak ditemukan untuk toko tersebut")
+    const { data: req, error } = await supabase
+      .from("store_adjustment_requests")
+      .insert([{ ...header, warehouse_id: whId, status: "Draft" }])
+      .select()
+      .single()
+    if (error) throw error
+    const rows = items.map((it) => ({ ...it, request_id: (req as any).id }))
+    const { error: itemErr } = await supabase.from("store_adjustment_request_items").insert(rows)
+    if (itemErr) throw itemErr
+    return req
+  },
+
+  async approveAdjustRequest(id: string, approvedBy: string) {
+    const { data, error } = await supabase
+      .from("store_adjustment_requests")
+      .update({ status: "Disetujui", approved_by: approvedBy })
+      .eq("id", id)
+      .select()
+      .single()
+    if (error) throw error
+    // DB trigger akan melakukan sinkronisasi stok toko
+    return data
+  },
+
+  async rejectAdjustRequest(id: string, approvedBy: string) {
+    const { data, error } = await supabase
+      .from("store_adjustment_requests")
+      .update({ status: "Ditolak", approved_by: approvedBy })
+      .eq("id", id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Shipments to stores awaiting store approval (Surat Jalan ke toko)
+  async listStoreShipmentsDraft() {
+    const { data, error } = await supabase
+      .from("surat_jalan")
+      .select(
+        "*, dari:warehouses!surat_jalan_dari_gudang_id_fkey(name,code), ke_gudang:warehouses!surat_jalan_ke_gudang_id_fkey(name,code), ke_toko:stores(name,code)"
+      )
+      .not("ke_toko_id", "is", null)
+      .eq("status", "Draft")
+      .order("created_at", { ascending: false })
+    if (error) throw error
+    return data
+  },
+
+  async getSuratJalanItems(suratJalanId: string) {
+    const { data, error } = await supabase
+      .from("surat_jalan_items")
+      .select("*, products(name, sku)")
+      .eq("surat_jalan_id", suratJalanId)
     if (error) throw error
     return data
   },

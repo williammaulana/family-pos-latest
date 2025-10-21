@@ -34,13 +34,19 @@ const navigation = [
     name: "Point of Sale",
     href: "/pos",
     icon: ShoppingCart,
-    roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+    roles: ["superadmin", "admin_gudang", "admin_toko", "staff", "super_admin", "admin", "kasir"],
   },
   {
     name: "History Orders",
     href: "/orders",
     icon: ClipboardList,
     roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+  },
+  {
+    name: "Persetujuan",
+    href: "/approvals",
+    icon: ClipboardList,
+    roles: ["superadmin", "admin_toko"],
   },
   {
     name: "Gudang",
@@ -53,6 +59,12 @@ const navigation = [
     href: "/stores",
     icon: Store,
     roles: ["superadmin", "admin_gudang"],
+  },
+  {
+    name: "Persetujuan",
+    href: "/approvals",
+    icon: ClipboardList,
+    roles: ["superadmin", "admin_toko"],
   },
   {
     name: "Produk & Stok",

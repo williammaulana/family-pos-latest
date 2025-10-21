@@ -89,6 +89,14 @@ export default function SuratJalanPage() {
   }
 
   const approve = async (id: string) => {
+    const row = rows.find((r) => r.id === id)
+    if (row?.ke_toko) {
+      return toast({
+        title: "Hanya Admin Toko",
+        description: "ACC pengiriman ke Toko harus dilakukan di halaman Persetujuan oleh admin toko.",
+        variant: "destructive",
+      })
+    }
     await docService.approveSuratJalan(id)
     setRows(await docService.listSuratJalan())
     toast({ title: "Disetujui", description: "Surat Jalan disetujui. Stok tersinkron otomatis." })
@@ -236,10 +244,13 @@ export default function SuratJalanPage() {
                       <td className="py-2">{r.tanggal?.slice(0, 10)}</td>
                       <td className="py-2">{r.status}</td>
                       <td className="py-2 flex gap-2">
-                        {r.status !== "Disetujui" && (
+                        {r.status !== "Disetujui" && !r.ke_toko && (
                           <Button size="sm" onClick={() => approve(r.id)}>
                             ACC
                           </Button>
+                        )}
+                        {r.status !== "Disetujui" && r.ke_toko && (
+                          <span className="text-xs text-muted-foreground">Menunggu persetujuan Toko</span>
                         )}
                         <Link href={`/surat-jalan/${r.id}/print`}>
                           <Button size="sm" variant="outline">

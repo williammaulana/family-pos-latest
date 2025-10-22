@@ -73,6 +73,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.16",
     "next": "^14.2.16",

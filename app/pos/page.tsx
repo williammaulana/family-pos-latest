@@ -7,6 +7,9 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProductGrid } from "@/components/pos/product-grid"
 import { ShoppingCart } from "@/components/pos/shopping-cart"
 import { CheckoutForm } from "@/components/pos/checkout-form"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ShoppingCart as ShoppingCartIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Product, TransactionItem } from "@/types"
 
@@ -17,6 +20,7 @@ export default function POSPage() {
   const [cartItems, setCartItems] = useState<TransactionItem[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [showCartDialog, setShowCartDialog] = useState(false)
   const [transactionData, setTransactionData] = useState<{
     code: string
     customerName: string
@@ -145,8 +149,8 @@ export default function POSPage() {
       }
 
       const subtotal = cartItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0)
-      const tax = Math.floor(subtotal * 0.1) // 10% tax, integer
-      const beforeDiscountTotal = subtotal + tax
+      const tax = 0
+      const beforeDiscountTotal = subtotal
 
       // Apply transaction-level discount
       let transactionDiscountAmount = 0
@@ -273,31 +277,84 @@ export default function POSPage() {
 
   return (
     <DashboardLayout title="Kasir">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-        {/* Product Grid */}
-        <div className="lg:col-span-2">
-          <ProductGrid onAddToCart={addToCart} />
-        </div>
+      <div className="flex flex-col h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+          {/* Product Grid */}
+          <div className="lg:col-span-2 flex flex-col min-h-0">
+            <ProductGrid onAddToCart={addToCart} />
+          </div>
 
-        {/* Cart and Checkout */}
-        <div className="space-y-6">
-          <ShoppingCart
-            items={cartItems}
-            onUpdateQuantity={updateQuantity}
-            onRemoveItem={removeItem}
-            onClearCart={clearCart}
-            onUpdateDiscount={updateItemDiscount}
-          />
-          <CheckoutForm 
-            items={cartItems} 
-            onCheckout={handleCheckout} 
-            isProcessing={isProcessing}
-            showReceipt={showReceipt}
-            transactionData={transactionData || undefined}
-            onNewTransaction={startNewTransaction}
-          />
+          {/* Cart Button for Mobile */}
+          <div className="lg:hidden fixed bottom-4 right-4 z-50">
+            <Button
+              onClick={() => setShowCartDialog(true)}
+              className="rounded-full h-14 w-14 shadow-lg"
+              size="icon"
+            >
+              <ShoppingCartIcon className="h-6 w-6" />
+              {cartItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                  {cartItems.length}
+                </span>
+              )}
+            </Button>
+          </div>
+
+          {/* Cart and Checkout for Desktop */}
+          <div className="hidden lg:flex lg:flex-col space-y-6 min-h-0">
+            <div className="flex-1 min-h-0">
+              <ShoppingCart
+                items={cartItems}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeItem}
+                onClearCart={clearCart}
+                onUpdateDiscount={updateItemDiscount}
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <CheckoutForm
+                items={cartItems}
+                onCheckout={handleCheckout}
+                isProcessing={isProcessing}
+                showReceipt={showReceipt}
+                transactionData={transactionData || undefined}
+                onNewTransaction={startNewTransaction}
+              />
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Cart Dialog for Mobile */}
+      <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
+        <DialogContent className="w-[95vw] max-w-md mx-auto max-h-[85vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="flex-shrink-0 px-6 py-4">
+            <DialogTitle>Keranjang Belanja</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 pb-4">
+            <div className="space-y-4">
+              <ShoppingCart
+                items={cartItems}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeItem}
+                onClearCart={clearCart}
+                onUpdateDiscount={updateItemDiscount}
+              />
+              <CheckoutForm
+                items={cartItems}
+                onCheckout={(customerName, paymentMethod, amountPaid, transactionDiscount) => {
+                  handleCheckout(customerName, paymentMethod, amountPaid, transactionDiscount)
+                  setShowCartDialog(false)
+                }}
+                isProcessing={isProcessing}
+                showReceipt={showReceipt}
+                transactionData={transactionData || undefined}
+                onNewTransaction={startNewTransaction}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

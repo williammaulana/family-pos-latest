@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { UserTable } from "@/components/users/user-table"
 import { UserForm } from "@/components/users/user-form"
+import UserDetailDialog from "@/components/users/user-detail-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
@@ -20,6 +21,8 @@ export default function UsersPage() {
   const { toast } = useToast()
   const [isUserFormOpen, setIsUserFormOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [detailUser, setDetailUser] = useState<User | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
@@ -41,14 +44,8 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Placeholder: if users API added, call it here
-        const res = await fetch('/api/users')
-        if (res.ok) {
-          const json = await res.json()
-          setUsers(json.data || [])
-        } else {
-          setUsers([])
-        }
+        const data = await userService.getUsers()
+        setUsers(data || [])
       } catch (error) {
         console.error("Error fetching users:", error)
         toast({
@@ -71,18 +68,22 @@ export default function UsersPage() {
     setIsUserFormOpen(true)
   }
 
+  const handleViewUser = (user: User) => {
+    setDetailUser(user)
+    setIsDetailOpen(true)
+  }
+
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) return
 
     setIsProcessing(true)
     try {
-      await fetch(`/api/users?id=${userId}`, { method: 'DELETE' })
+      await userService.deleteUser(userId)
       setUsers(users.filter(u => u.id !== userId))
       toast({
         title: "Pengguna dihapus",
         description: "Pengguna berhasil dihapus dari sistem",
       })
-      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menghapus pengguna",
@@ -98,16 +99,17 @@ export default function UsersPage() {
     setIsProcessing(true)
     try {
       if (selectedUser) {
-        await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedUser.id, ...userData }) })
+        await userService.updateUser(selectedUser.id, userData)
         setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u))
         toast({
           title: "Pengguna diperbarui",
           description: "Informasi pengguna berhasil diperbarui",
         })
       } else {
-        const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) })
-        const json = await res.json()
-        if (json?.data) setUsers([...users, json.data])
+        await userService.createUser(userData as Omit<User, "id" | "createdAt" | "updatedAt">)
+        // Refresh users list
+        const data = await userService.getUsers()
+        setUsers(data || [])
         toast({
           title: "Pengguna ditambahkan",
           description: "Pengguna baru berhasil ditambahkan ke sistem",
@@ -115,7 +117,6 @@ export default function UsersPage() {
       }
       setIsUserFormOpen(false)
       setSelectedUser(null)
-      setRefreshTrigger((prev) => prev + 1)
     } catch (error) {
       toast({
         title: "Gagal menyimpan pengguna",
@@ -148,7 +149,7 @@ export default function UsersPage() {
 
   return (
     <DashboardLayout title="Manajemen Pengguna">
-      <div className="space-y-6">
+      <div className="flex flex-col h-full space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -181,7 +182,7 @@ export default function UsersPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-lg font-semibold">Daftar Pengguna</h2>
             <p className="text-sm text-muted-foreground">Kelola pengguna dan hak akses sistem</p>
@@ -193,14 +194,16 @@ export default function UsersPage() {
         </div>
 
         {/* User Table */}
-        {isLoadingUsers ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Memuat data pengguna...</p>
-          </div>
-        ) : (
-          <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} />
-        )}
+        <div className="flex-1 min-h-0">
+          {isLoadingUsers ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Memuat data pengguna...</p>
+            </div>
+          ) : (
+            <UserTable users={users} onEditUser={handleEditUser} onDeleteUser={handleDeleteUser} onViewUser={handleViewUser} />
+          )}
+        </div>
 
         {/* User Form Dialog */}
         <UserForm
@@ -212,6 +215,16 @@ export default function UsersPage() {
           }}
           onSave={handleSaveUser}
           isLoading={isProcessing}
+        />
+
+        {/* User Detail Dialog */}
+        <UserDetailDialog
+          user={detailUser}
+          isOpen={isDetailOpen}
+          onClose={() => {
+            setIsDetailOpen(false)
+            setDetailUser(null)
+          }}
         />
       </div>
     </DashboardLayout>

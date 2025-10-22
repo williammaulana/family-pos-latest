@@ -12,6 +12,9 @@ export interface User {
     | "admin"
     | "kasir"
   avatar?: string
+  warehouseId?: string
+  storeId?: string
+  locationName?: string
 }
 
 export interface Product {

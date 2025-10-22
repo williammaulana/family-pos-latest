@@ -19,9 +19,9 @@ BEGIN
   END IF;
 END $$;
 
--- Backfill with bcrypt hash for "password"
+-- Backfill with bcrypt hash for "password123"
 UPDATE public.users
-SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+SET password_hash = '$2a$10$wR5OvzK3RiXPPTKFtTTzWuKx.qbyqdl9LBo0t1pvXkVQ6Gc5A8I2e'
 WHERE password_hash IS NULL;
 
 -- Set NOT NULL constraint if safe

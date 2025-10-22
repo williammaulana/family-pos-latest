@@ -50,7 +50,18 @@ export default function InventoryPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('/api/products')
+        const params = new URLSearchParams()
+        if (user?.role !== 'superadmin') {
+          // For non-superadmin users, filter by their assigned location
+          if (user?.warehouseId) {
+            params.append('warehouseId', user.warehouseId)
+          }
+          if (user?.storeId) {
+            params.append('storeId', user.storeId)
+          }
+        }
+        const url = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
+        const res = await fetch(url)
         const json = await res.json()
         setProducts(json.data || [])
       } catch (error) {
@@ -267,7 +278,7 @@ export default function InventoryPage() {
 
   return (
     <DashboardLayout title="Manajemen Inventory">
-      <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col h-full space-y-4 md:space-y-6 px-3 md:px-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card>
@@ -325,7 +336,7 @@ export default function InventoryPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 flex-shrink-0 max-w-full">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Daftar Produk</h2>
             <p className="text-sm text-muted-foreground">Kelola produk dan stok inventory</p>
@@ -356,13 +367,15 @@ export default function InventoryPage() {
         </div>
 
         {/* Product Table */}
-        <ProductTable
-          onEditProduct={handleEditProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onAdjustStock={handleAdjustStock}
-          onViewProduct={handleViewProduct}
-          refreshTrigger={refreshTrigger}
-        />
+        <div className="flex-1 min-h-0 overflow-x-auto">
+          <ProductTable
+            onEditProduct={handleEditProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onAdjustStock={handleAdjustStock}
+            onViewProduct={handleViewProduct}
+            refreshTrigger={refreshTrigger}
+          />
+        </div>
 
         {/* Dialogs */}
         <ProductForm

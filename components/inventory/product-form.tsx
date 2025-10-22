@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Product } from "@/types"
+import { warehouseService, storeService } from "@/lib/locations-service"
 
 interface ProductFormProps {
   product?: Product | null
@@ -30,6 +31,8 @@ const categories = ["Makanan", "Minuman", "Kebersihan", "Elektronik", "Pakaian",
 const units = ["pcs", "dus", "liter", "kg", "gram", "meter", "cm", "buah", "bungkus", "botol", "kaleng", "paket"]
 
 export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: ProductFormProps) {
+  const [warehouses, setWarehouses] = useState<any[]>([])
+  const [stores, setStores] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -40,7 +43,17 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
     barcode: "",
     unit: "",
     description: "",
+    locationType: "warehouse" as "warehouse" | "store",
+    locationId: "",
   })
+
+  useEffect(() => {
+    ;(async () => {
+      const [ws, ss] = await Promise.all([warehouseService.list(), storeService.list()])
+      setWarehouses(ws || [])
+      setStores(ss || [])
+    })()
+  }, [])
 
   useEffect(() => {
     if (product) {
@@ -60,6 +73,8 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
         barcode: (product.barcode ?? snake.barcode ?? "") as string,
         unit: (product.unit ?? snake.unit ?? "") as string,
         description: (snake.description ?? "") as string,
+        locationType: "warehouse",
+        locationId: "",
       })
     } else {
       setFormData({
@@ -72,6 +87,8 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
         barcode: "",
         unit: "",
         description: "",
+        locationType: "warehouse",
+        locationId: "",
       })
     }
   }, [product])
@@ -79,7 +96,7 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const productData: Partial<Product> = {
+    const productData: any = {
       name: formData.name,
       category: formData.category,
       price: Number.parseFloat(formData.price),
@@ -92,6 +109,10 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
 
     if (product) {
       productData.id = product.id
+    } else {
+      // For new products, include location data
+      productData.locationType = formData.locationType
+      productData.locationId = formData.locationId
     }
 
     onSave(productData)
@@ -221,6 +242,41 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
               />
             </div>
           </div>
+
+          {!product && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="locationType">Lokasi Stok *</Label>
+                <Select
+                  value={formData.locationType}
+                  onValueChange={(value: "warehouse" | "store") => handleInputChange("locationType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih lokasi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="warehouse">Gudang</SelectItem>
+                    <SelectItem value="store">Toko</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="locationId">Pilih {formData.locationType === "warehouse" ? "Gudang" : "Toko"} *</Label>
+                <Select value={formData.locationId} onValueChange={(value) => handleInputChange("locationId", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Pilih ${formData.locationType === "warehouse" ? "gudang" : "toko"}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(formData.locationType === "warehouse" ? warehouses : stores).map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Deskripsi</Label>

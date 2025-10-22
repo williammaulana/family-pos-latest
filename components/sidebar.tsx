@@ -24,77 +24,101 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useMobile } from "@/hooks/use-mobile"
 
 const navigation = [
+  // Main Operations
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    roles: ["superadmin", "admin_gudang", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+    section: "Operasi Utama",
+    items: [
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        roles: ["superadmin", "admin_gudang", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+      },
+      {
+        name: "Point of Sale",
+        href: "/pos",
+        icon: ShoppingCart,
+        roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+      },
+      {
+        name: "History Orders",
+        href: "/orders",
+        icon: ClipboardList,
+        roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+      },
+    ],
   },
+  // Inventory Management
   {
-    name: "Point of Sale",
-    href: "/pos",
-    icon: ShoppingCart,
-    roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
+    section: "Manajemen Inventori",
+    items: [
+      {
+        name: "Gudang",
+        href: "/warehouses",
+        icon: Store,
+        roles: ["super_admin", "superadmin", "admin_gudang"],
+      },
+      {
+        name: "Toko",
+        href: "/stores",
+        icon: Store,
+        roles: ["super_admin", "superadmin", "admin_gudang"],
+      },
+      {
+        name: "Produk & Stok",
+        href: "/inventory",
+        icon: Package,
+        roles: ["super_admin", "superadmin", "admin_gudang", "super_admin", "admin"],
+      },
+      {
+        name: "Kategori",
+        href: "/categories",
+        icon: Package,
+        roles: ["super_admin", "superadmin"],
+      },
+      {
+        name: "Penyesuaian Stok",
+        href: "/inventory/stock-adjustment",
+        icon: ArrowRightLeft,
+        roles: ["super_admin", "superadmin", "admin_gudang", "super_admin", "admin"],
+      },
+      {
+        name: "Penerimaan Barang",
+        href: "/penerimaan",
+        icon: FileText,
+        roles: ["super_admin", "superadmin", "admin_gudang", "admin_toko"],
+      },
+      {
+        name: "Surat Jalan",
+        href: "/surat-jalan",
+        icon: FileText,
+        roles: ["super_admin", "superadmin", "admin_gudang"],
+      },
+    ],
   },
+  // Reports & Admin
   {
-    name: "History Orders",
-    href: "/orders",
-    icon: ClipboardList,
-    roles: ["superadmin", "admin_toko", "staff", "super_admin", "admin", "kasir"],
-  },
-  {
-    name: "Gudang",
-    href: "/warehouses",
-    icon: Store,
-    roles: ["superadmin", "admin_gudang"],
-  },
-  {
-    name: "Toko",
-    href: "/stores",
-    icon: Store,
-    roles: ["superadmin", "admin_gudang"],
-  },
-  {
-    name: "Produk & Stok",
-    href: "/inventory",
-    icon: Package,
-    roles: ["superadmin", "admin_gudang", "super_admin", "admin"],
-  },
-  {
-    name: "Penyesuaian Stok",
-    href: "/inventory/stock-adjustment",
-    icon: ArrowRightLeft,
-    roles: ["superadmin", "admin_gudang", "super_admin", "admin"],
-  },
-  {
-    name: "Penerimaan Barang",
-    href: "/penerimaan",
-    icon: FileText,
-    roles: ["superadmin", "admin_gudang", "admin_toko"],
-  },
-  {
-    name: "Surat Jalan",
-    href: "/surat-jalan",
-    icon: FileText,
-    roles: ["superadmin", "admin_gudang"],
-  },
-  {
-    name: "Reports",
-    href: "/reports",
-    icon: FileText,
-    roles: ["superadmin", "admin_gudang", "super_admin", "admin"],
-  },
-  {
-    name: "Users",
-    href: "/users",
-    icon: Users,
-    roles: ["superadmin", "super_admin"],
-  },
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: Settings,
-    roles: ["superadmin", "super_admin"],
+    section: "Laporan & Admin",
+    items: [
+      {
+        name: "Reports",
+        href: "/reports",
+        icon: FileText,
+        roles: ["superadmin", "admin_gudang", "super_admin", "admin"],
+      },
+      {
+        name: "Users",
+        href: "/users",
+        icon: Users,
+        roles: ["super_admin", "superadmin", "super_admin"],
+      },
+      {
+        name: "Settings",
+        href: "/settings",
+        icon: Settings,
+        roles: ["super_admin", "superadmin", "super_admin"],
+      },
+    ],
   },
 ]
 
@@ -103,7 +127,9 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   const { settings } = useSettings()
   const pathname = usePathname()
 
-  const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role))
+  const filteredNavigation = navigation.flatMap((section) =>
+    section.items.filter((item) => user && item.roles.includes(user.role))
+  )
 
   return (
     <div
@@ -134,34 +160,48 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {filteredNavigation.map((item) => {
-            const isActive = pathname === item.href
+        <div className="space-y-4">
+          {navigation.map((section) => {
+            const filteredItems = section.items.filter((item) => user && item.roles.includes(user.role))
+            if (filteredItems.length === 0) return null
+
             return (
-              <li key={item.name}>
-                <Link href={item.href} onClick={onItemClick}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "w-full justify-start gap-3 text-left",
-                      isActive ? "text-white hover:opacity-90" : "text-blue-100 hover:text-white hover:opacity-80",
-                    )}
-                    style={
-                      isActive
-                        ? {
-                            backgroundColor: `var(--secondary-color, ${settings.secondaryColor})`,
-                          }
-                        : {}
-                    }
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.name}
-                  </Button>
-                </Link>
-              </li>
+              <div key={section.section}>
+                <h3 className="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-2">
+                  {section.section}
+                </h3>
+                <ul className="space-y-1">
+                  {filteredItems.map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <li key={item.name}>
+                        <Link href={item.href} onClick={onItemClick}>
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className={cn(
+                              "w-full justify-start gap-3 text-left",
+                              isActive ? "text-white hover:opacity-90" : "text-blue-100 hover:text-white hover:opacity-80",
+                            )}
+                            style={
+                              isActive
+                                ? {
+                                    backgroundColor: `var(--secondary-color, ${settings.secondaryColor})`,
+                                  }
+                                : {}
+                            }
+                          >
+                            <item.icon className="h-5 w-5" />
+                            {item.name}
+                          </Button>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
             )
           })}
-        </ul>
+        </div>
       </nav>
 
       {/* User Info & Logout */}

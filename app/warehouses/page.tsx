@@ -14,7 +14,7 @@ export default function WarehousesPage() {
   const { toast } = useToast()
   const [rows, setRows] = useState<any[]>([])
   const [form, setForm] = useState({ code: "", name: "", address: "" })
-  const canAccess = user && ["superadmin", "admin_gudang"].includes(user.role as any)
+  const canAccess = user && ["super_admin", "superadmin", "admin_gudang"].includes(user.role as any)
 
   useEffect(() => {
     ;(async () => {

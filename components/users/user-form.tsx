@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { User } from "@/types"
+import { warehouseService, storeService } from "@/lib/locations-service"
 
 interface UserFormProps {
   user?: User | null
@@ -26,13 +27,25 @@ interface UserFormProps {
 }
 
 export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormProps) {
+  const [warehouses, setWarehouses] = useState<any[]>([])
+  const [stores, setStores] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "kasir" as User["role"],
+    role: "staff" as User["role"],
     password: "",
     confirmPassword: "",
+    locationType: "warehouse" as "warehouse" | "store",
+    locationId: "",
   })
+
+  useEffect(() => {
+    ;(async () => {
+      const [ws, ss] = await Promise.all([warehouseService.list(), storeService.list()])
+      setWarehouses(ws || [])
+      setStores(ss || [])
+    })()
+  }, [])
 
   useEffect(() => {
     if (user) {
@@ -42,14 +55,18 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
         role: user.role,
         password: "",
         confirmPassword: "",
+        locationType: user.warehouseId ? "warehouse" : "store",
+        locationId: user.warehouseId || user.storeId || "",
       })
     } else {
       setFormData({
         name: "",
         email: "",
-        role: "kasir",
+        role: "staff",
         password: "",
         confirmPassword: "",
+        locationType: "warehouse",
+        locationId: "",
       })
     }
   }, [user])
@@ -66,6 +83,15 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
       name: formData.name,
       email: formData.email,
       role: formData.role,
+    }
+
+    // Add location fields
+    if (formData.locationType === "warehouse") {
+      userData.warehouseId = formData.locationId || undefined
+      userData.storeId = undefined
+    } else {
+      userData.storeId = formData.locationId || undefined
+      userData.warehouseId = undefined
     }
 
     if (user) {
@@ -120,9 +146,42 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="kasir">Kasir</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="admin_toko">Admin Toko</SelectItem>
+                <SelectItem value="admin_gudang">Admin Gudang</SelectItem>
+                <SelectItem value="superadmin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="locationType">Lokasi</Label>
+            <Select
+              value={formData.locationType}
+              onValueChange={(value: "warehouse" | "store") => handleInputChange("locationType", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih lokasi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="warehouse">Gudang</SelectItem>
+                <SelectItem value="store">Toko</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="locationId">Pilih {formData.locationType === "warehouse" ? "Gudang" : "Toko"}</Label>
+            <Select value={formData.locationId} onValueChange={(value) => handleInputChange("locationId", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder={`Pilih ${formData.locationType === "warehouse" ? "gudang" : "toko"}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {(formData.locationType === "warehouse" ? warehouses : stores).map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

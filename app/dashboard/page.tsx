@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {isStatsLoading ? (
@@ -113,7 +113,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions and Low Stock */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
           <RecentTransactions />
           <LowStockAlert />
         </div>

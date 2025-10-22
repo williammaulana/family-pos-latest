@@ -21,7 +21,7 @@ export default function StoresPage() {
     address: "",
     warehouse_id: null,
   })
-  const canAccess = user && ["superadmin", "admin_gudang"].includes(user.role as any)
+  const canAccess = user && ["super_admin", "superadmin", "admin_gudang"].includes(user.role as any)
 
   useEffect(() => {
     ;(async () => {

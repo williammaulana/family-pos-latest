@@ -54,7 +54,6 @@
     "input-otp": "latest",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.454.0",
-    
     "next-themes": "latest",
     "react": "^18",
     "react-day-picker": "latest",
@@ -73,10 +72,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^22.18.0",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/bcryptjs": "^3.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.16",
     "next": "^14.2.16",

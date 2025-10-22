@@ -21,11 +21,11 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const isMobile = useMobile()
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       {!isMobile && <Sidebar />}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-3 md:px-6 py-3 md:py-4">
+        <header className="bg-white border-b border-gray-200 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className={cn("", isMobile && "ml-10 md:ml-12")}>
               <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 truncate">
@@ -54,7 +54,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6 min-h-0">{children}</main>
         {isMobile && <Sidebar />}
       </div>
     </div>

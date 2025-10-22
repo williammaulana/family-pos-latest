@@ -27,3 +27,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Failed to create category" }, { status: 500 })
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, name, description } = await request.json()
+    if (!id) return NextResponse.json({ success: false, error: "Category ID is required" }, { status: 400 })
+    if (!name) return NextResponse.json({ success: false, error: "Name is required" }, { status: 400 })
+    const { categoryService } = await getServices()
+    const updated = await categoryService.updateCategory(id, name, description)
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    console.error("Error updating category:", error)
+    return NextResponse.json({ success: false, error: "Failed to update category" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    if (!id) return NextResponse.json({ success: false, error: "Category ID is required" }, { status: 400 })
+    const { categoryService } = await getServices()
+    await categoryService.deleteCategory(id)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting category:", error)
+    return NextResponse.json({ success: false, error: "Failed to delete category" }, { status: 500 })
+  }
+}

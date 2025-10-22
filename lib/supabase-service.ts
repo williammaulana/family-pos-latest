@@ -4,23 +4,42 @@ import type { Product, User, DashboardStats } from "@/types"
 // User Services
 export const userService = {
   async getUsers() {
-    const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false })
+    const { data, error } = await supabase
+      .from("users")
+      .select("*, warehouses(name), stores(name)")
+      .order("created_at", { ascending: false })
 
     if (error) throw error
-    return data
+    return data?.map((user) => ({
+      ...user,
+      locationName: user.warehouses?.name || user.stores?.name || "Tidak ada lokasi",
+    }))
   },
 
   async getUserById(id: string) {
-    const { data, error } = await supabase.from("users").select("*").eq("id", id).single()
+    const { data, error } = await supabase
+      .from("users")
+      .select("*, warehouses(name), stores(name)")
+      .eq("id", id)
+      .single()
 
     if (error) throw error
-    return data
+    return {
+      ...data,
+      locationName: data.warehouses?.name || data.stores?.name || "Tidak ada lokasi",
+    }
   },
 
   async createUser(userData: Omit<User, "id" | "createdAt" | "updatedAt">) {
     const { data, error } = await supabase
       .from("users")
-      .insert([userData as any])
+      .insert([{
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        warehouse_id: userData.warehouseId,
+        store_id: userData.storeId,
+      }])
       .select()
       .single()
 
@@ -31,7 +50,14 @@ export const userService = {
   async updateUser(id: string, userData: Partial<User>) {
     const { data, error } = await supabase
       .from("users")
-      .update({ ...userData, updated_at: new Date().toISOString() })
+      .update({
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        warehouse_id: userData.warehouseId,
+        store_id: userData.storeId,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", id)
       .select()
       .single()
@@ -62,23 +88,56 @@ export const categoryService = {
     if (error) throw error
     return data
   },
+
+  async updateCategory(id: string, name: string, description?: string) {
+    const { data, error } = await supabase
+      .from("categories")
+      .update({ name, description, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async deleteCategory(id: string) {
+    const { error } = await supabase.from("categories").delete().eq("id", id)
+
+    if (error) throw error
+  },
 }
 
 // Product Services
 export const productService = {
-  async getProducts() {
-    const { data, error } = await supabase
+  async getProducts(warehouseId?: string, storeId?: string) {
+    let query = supabase
       .from("products")
       .select(`
         *,
         categories(name)
       `)
-      .order("name")
+
+    // If location filters are provided, join with product_stocks
+    if (warehouseId || storeId) {
+      query = query
+        .select(`
+          *,
+          categories(name),
+          product_stocks!inner(stock, warehouse_id, store_id)
+        `)
+        .eq('product_stocks.warehouse_id', warehouseId || null)
+        .eq('product_stocks.store_id', storeId || null)
+    }
+
+    const { data, error } = await query.order("name")
 
     if (error) throw error
     return data?.map((product) => ({
       ...product,
       category: product.categories?.name || "Unknown",
+      // Use location-specific stock if filtering by location
+      stock: warehouseId || storeId ? product.product_stocks?.[0]?.stock || 0 : product.stock,
     }))
   },
 
@@ -97,6 +156,28 @@ export const productService = {
       ...data,
       category: data.categories?.name || "Unknown",
     }
+  },
+
+  async createProductWithLocation(productData: Omit<Product, "id" | "createdAt" | "updatedAt">, locationType: string, locationId: string) {
+    // First create the product
+    const product = await this.createProduct(productData)
+
+    // Then create stock entry for the location
+    const { error: stockError } = await supabase
+      .from("product_stock")
+      .insert([{
+        product_id: product.id,
+        location_type: locationType,
+        location_id: locationId,
+        stock: productData.stock || 0,
+        min_stock: productData.minStock || 5,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+
+    if (stockError) throw stockError
+
+    return product
   },
 
   async createProduct(productData: Omit<Product, "id" | "createdAt" | "updatedAt">) {
@@ -130,7 +211,7 @@ export const productService = {
                 `Failed to create category without RPC. Ensure migrations are applied and SUPABASE_SERVICE_ROLE_KEY is set on the server. Underlying error: ${insertCatErr.message || insertCatErr}`,
               )
             }
-            categoryId = (insertCat as any).id
+            categoryId = insertedCat.id
           } else {
             throw ensureErr
           }

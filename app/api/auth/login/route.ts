@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    const storedHash = userRow.password_hash || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    const storedHash = userRow.password_hash || '$2a$10$xzmaZeeiEwXz6AjMQqqj2uiGp3DJcvItalqqJXy2mY8jMBS9O/Vp6'
     const isValidPassword = await bcrypt.compare(password, storedHash)
 
     if (!isValidPassword) {

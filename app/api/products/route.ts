@@ -3,8 +3,12 @@ import { getServices } from "@/lib/service-resolver"
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const warehouseId = searchParams.get('warehouseId')
+    const storeId = searchParams.get('storeId')
+
     const { productService } = await getServices()
-    const products = await productService.getProducts()
+    const products = await productService.getProducts(warehouseId || undefined, storeId || undefined)
 
     return NextResponse.json({
       success: true,
@@ -35,9 +39,17 @@ export async function POST(request: NextRequest) {
     delete payload.minStock
     delete payload.costPrice
     delete payload.imageUrl
-    const { productService } = await getServices()
-    const product = await productService.createProduct(payload)
-    return NextResponse.json({ success: true, data: product })
+
+    // Handle location-based stock creation
+    if (body.locationType && body.locationId) {
+      const { productService } = await getServices()
+      const product = await productService.createProductWithLocation(payload, body.locationType, body.locationId)
+      return NextResponse.json({ success: true, data: product })
+    } else {
+      const { productService } = await getServices()
+      const product = await productService.createProduct(payload)
+      return NextResponse.json({ success: true, data: product })
+    }
   } catch (error) {
     console.error("Error creating product:", error)
     return NextResponse.json({ success: false, error: "Failed to create product" }, { status: 500 })

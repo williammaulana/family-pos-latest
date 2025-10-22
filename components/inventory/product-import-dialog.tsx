@@ -2,15 +2,17 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Upload, FileText, AlertCircle } from "lucide-react"
 import { parseCSV, parseExcel, exportToCSV, exportToExcel } from "@/lib/export-utils"
 // import { productService } from "@/lib/supabase-service"
+import { warehouseService, storeService } from "@/lib/locations-service"
 import { useToast } from "@/hooks/use-toast"
 
 interface ProductImportDialogProps {
@@ -24,7 +26,19 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
   const [isProcessing, setIsProcessing] = useState(false)
   const [previewData, setPreviewData] = useState<string[][] | null>(null)
   const [errors, setErrors] = useState<string[]>([])
+  const [warehouses, setWarehouses] = useState<any[]>([])
+  const [stores, setStores] = useState<any[]>([])
+  const [locationType, setLocationType] = useState<"warehouse" | "store">("warehouse")
+  const [locationId, setLocationId] = useState<string>("")
   const { toast } = useToast()
+
+  useEffect(() => {
+    ;(async () => {
+      const [ws, ss] = await Promise.all([warehouseService.list(), storeService.list()])
+      setWarehouses(ws || [])
+      setStores(ss || [])
+    })()
+  }, [])
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -195,6 +209,13 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
       return
     }
 
+    // Validate location selection
+    if (!locationId) {
+      setErrors(["Silakan pilih lokasi penyimpanan untuk produk yang diimpor"])
+      setIsProcessing(false)
+      return
+    }
+
     const headers = parsed[0]
     const nameIndex = findIndexFor("name", headers)
     const skuIndex = findIndexFor("sku", headers)
@@ -216,6 +237,8 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
           price: Number(row[priceIndex]),
           stock: Number(row[stockIndex]),
           minStock: Number(row[minStockIndex]),
+          locationType,
+          locationId,
         }
         await fetch("/api/products", {
           method: "POST",
@@ -336,13 +359,49 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
             </div>
           )}
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="locationType">Lokasi Stok *</Label>
+              <Select
+                value={locationType}
+                onValueChange={(value: "warehouse" | "store") => {
+                  setLocationType(value)
+                  setLocationId("") // Reset location when type changes
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih lokasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="warehouse">Gudang</SelectItem>
+                  <SelectItem value="store">Toko</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="locationId">Pilih {locationType === "warehouse" ? "Gudang" : "Toko"} *</Label>
+              <Select value={locationId} onValueChange={setLocationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={`Pilih ${locationType === "warehouse" ? "gudang" : "toko"}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(locationType === "warehouse" ? warehouses : stores).map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-end gap-2">
             <Button variant="outline" onClick={onClose} className="order-2 sm:order-1 bg-transparent">
               Batal
             </Button>
             <Button
               onClick={handleImport}
-              disabled={!file || isProcessing || errors.length > 0}
+              disabled={!file || isProcessing || errors.length > 0 || !locationId}
               className="order-1 sm:order-2"
             >
               {isProcessing ? (

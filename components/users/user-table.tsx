@@ -2,8 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, Eye } from "lucide-react"
 import { UserIcon } from "@/components/icons/user-icon" // Import UserIcon
 import type { User } from "@/types"
 
@@ -11,9 +10,10 @@ interface UserTableProps {
   users: User[]
   onEditUser: (user: User) => void
   onDeleteUser: (userId: string) => void
+  onViewUser?: (user: User) => void
 }
 
-export function UserTable({ users, onEditUser, onDeleteUser }: UserTableProps) {
+export function UserTable({ users, onEditUser, onDeleteUser, onViewUser }: UserTableProps) {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "super_admin":
@@ -35,6 +35,7 @@ export function UserTable({ users, onEditUser, onDeleteUser }: UserTableProps) {
             <TableHead>Pengguna</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Lokasi</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
@@ -55,33 +56,42 @@ export function UserTable({ users, onEditUser, onDeleteUser }: UserTableProps) {
               </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>{getRoleBadge(user.role)}</TableCell>
+              <TableCell>{(user as any).locationName || "Tidak ada lokasi"}</TableCell>
               <TableCell>
                 <Badge variant="default" className="bg-green-100 text-green-800">
                   Aktif
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEditUser(user)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDeleteUser(user.id)}
-                      className="text-red-600"
-                      disabled={user.role === "super_admin"}
+                <div className="flex items-center justify-end gap-2">
+                  {onViewUser && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onViewUser(user)}
+                      className="h-8 w-8 p-0"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Hapus
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditUser(user)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeleteUser(user.id)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                    disabled={user.role === "super_admin"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

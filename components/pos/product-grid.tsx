@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +15,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ onAddToCart }: ProductGridProps) {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Semua")
   const [products, setProducts] = useState<any[]>([])
@@ -23,8 +25,21 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Build products URL with location filters
+        const params = new URLSearchParams()
+        if (user?.role !== 'superadmin') {
+          // For non-superadmin users, filter by their assigned location
+          if (user?.warehouseId) {
+            params.append('warehouseId', user.warehouseId)
+          }
+          if (user?.storeId) {
+            params.append('storeId', user.storeId)
+          }
+        }
+        const productsUrl = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
+
         const [productsResponse, categoriesResponse] = await Promise.all([
-          fetch('/api/products'),
+          fetch(productsUrl),
           fetch('/api/categories'),
         ])
 
@@ -45,8 +60,10 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
       }
     }
 
-    fetchData()
-  }, [])
+    if (user) {
+      fetchData()
+    }
+  }, [user])
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =

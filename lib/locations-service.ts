@@ -6,6 +6,9 @@ export const warehouseService = {
     if (error) throw error
     return data
   },
+  async getWarehouses() {
+    return this.list()
+  },
   async create(payload: { code: string; name: string; address?: string | null }) {
     const { data, error } = await supabase.from("warehouses").insert([payload]).select().single()
     if (error) throw error
@@ -27,6 +30,9 @@ export const storeService = {
     const { data, error } = await supabase.from("stores").select("*, warehouses:warehouse_id(name,code)").order("name")
     if (error) throw error
     return data
+  },
+  async getStores() {
+    return this.list()
   },
   async create(payload: { code: string; name: string; address?: string | null; warehouse_id?: string | null }) {
     const { data, error } = await supabase.from("stores").insert([payload]).select().single()

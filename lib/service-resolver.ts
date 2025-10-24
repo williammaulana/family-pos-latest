@@ -10,6 +10,7 @@ export async function resolveProvider(): Promise<Provider> {
 
 export async function getServices() {
   const supabaseServices = await import("./supabase-service")
+  const locationServices = await import("./locations-service")
 
   // Adapter kecil untuk method yang tidak ada di Supabase service
   const productService = {
@@ -48,6 +49,7 @@ export async function getServices() {
 
   return {
     ...supabaseServices,
+    ...locationServices,
     productService,
   }
 }

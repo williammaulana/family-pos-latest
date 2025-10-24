@@ -13,21 +13,23 @@ import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 
 interface ProductTableProps {
+  products: Product[]
+  categories: string[]
   onEditProduct: (product: Product) => void
   onDeleteProduct: (productId: string) => void
   onAdjustStock: (productId: string, adjustment: number) => void
   onViewProduct?: (product: Product) => void
-  refreshTrigger?: number
-  selectedLocation?: string
+  isLoading?: boolean
 }
 
 export function ProductTable({
+  products,
+  categories,
   onEditProduct,
   onDeleteProduct,
   onAdjustStock,
   onViewProduct,
-  refreshTrigger,
-  selectedLocation,
+  isLoading = false,
 }: ProductTableProps) {
   const { user } = useAuth()
   const canEditProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
@@ -37,58 +39,7 @@ export function ProductTable({
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Semua')
 
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<string[]>(['Semua'])
 
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const params = new URLSearchParams()
-
-        if (user?.role === 'superadmin') {
-          // For Super Admin, apply selected location filter
-          if (selectedLocation && selectedLocation !== 'Semua') {
-            const [type, id] = selectedLocation.split(':')
-            if (type === 'warehouse') params.append('warehouseId', id)
-            if (type === 'store') params.append('storeId', id)
-          }
-        } else if (user?.role === 'admin_toko') {
-          // For admin_toko, only show products from their assigned store
-          if (user?.storeId) {
-            params.append('storeId', user.storeId)
-          }
-        } else {
-          // For other roles (admin_gudang, admin, etc.), filter by their assigned location
-          if (user?.warehouseId) params.append('warehouseId', user.warehouseId)
-          if (user?.storeId) params.append('storeId', user.storeId)
-        }
-
-        const productsUrl = params.toString()
-          ? `/api/products?${params.toString()}`
-          : '/api/products'
-
-        const [productsRes, categoriesRes] = await Promise.all([
-          fetch(productsUrl),
-          fetch('/api/categories'),
-        ])
-
-        const [productsJson, categoriesJson] = await Promise.all([
-          productsRes.json(),
-          categoriesRes.json(),
-        ])
-
-        setProducts(productsJson.data || [])
-        setCategories(['Semua', ...(categoriesJson.data || []).map((c: any) => c.name)])
-      } catch (err) {
-        console.error('Error fetching products:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchData()
-  }, [refreshTrigger, user, selectedLocation])
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {

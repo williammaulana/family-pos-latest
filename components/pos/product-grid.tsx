@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { useAuth } from "@/lib/auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,11 @@ interface ProductGridProps {
   onAddToCart: (product: Product) => void
 }
 
-export function ProductGrid({ onAddToCart }: ProductGridProps) {
+export interface ProductGridRef {
+  refetch: () => void
+}
+
+export const ProductGrid = forwardRef<ProductGridRef, ProductGridProps>(({ onAddToCart }, ref) => {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Semua")
@@ -22,48 +26,53 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   const [categories, setCategories] = useState<string[]>(["Semua"])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Build products URL with location filters
-        const params = new URLSearchParams()
-        if (user?.role !== 'superadmin') {
-          // For non-superadmin users, filter by their assigned location
-          if (user?.warehouseId) {
-            params.append('warehouseId', user.warehouseId)
-          }
-          if (user?.storeId) {
-            params.append('storeId', user.storeId)
-          }
+  const fetchData = async () => {
+    try {
+      setIsLoading(true)
+      // Build products URL with location filters
+      const params = new URLSearchParams()
+      if (user?.role !== 'superadmin') {
+        // For non-superadmin users, filter by their assigned location
+        if (user?.warehouseId) {
+          params.append('warehouseId', user.warehouseId)
         }
-        const productsUrl = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
-
-        const [productsResponse, categoriesResponse] = await Promise.all([
-          fetch(productsUrl),
-          fetch('/api/categories'),
-        ])
-
-        if (!productsResponse.ok || !categoriesResponse.ok) {
-          throw new Error('Failed to fetch data')
+        if (user?.storeId) {
+          params.append('storeId', user.storeId)
         }
-
-        const productsData = await productsResponse.json()
-        const categoriesData = await categoriesResponse.json()
-
-        setProducts(productsData.data || [])
-        const categoryNames = ["Semua", ...categoriesData.data.map((cat: any) => cat.name)]
-        setCategories(categoryNames)
-      } catch (error) {
-        console.error("Error fetching products and categories:", error)
-      } finally {
-        setIsLoading(false)
       }
-    }
+      const productsUrl = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
 
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        fetch(productsUrl),
+        fetch('/api/categories'),
+      ])
+
+      if (!productsResponse.ok || !categoriesResponse.ok) {
+        throw new Error('Failed to fetch data')
+      }
+
+      const productsData = await productsResponse.json()
+      const categoriesData = await categoriesResponse.json()
+
+      setProducts(productsData.data || [])
+      const categoryNames = ["Semua", ...categoriesData.data.map((cat: any) => cat.name)]
+      setCategories(categoryNames)
+    } catch (error) {
+      console.error("Error fetching products and categories:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (user) {
       fetchData()
     }
   }, [user])
+
+  useImperativeHandle(ref, () => ({
+    refetch: fetchData
+  }))
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -167,4 +176,6 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
       )}
     </div>
   )
-}
+})
+
+ProductGrid.displayName = "ProductGrid"

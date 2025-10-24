@@ -68,7 +68,7 @@ const navigation = [
         name: "Produk & Stok",
         href: "/inventory",
         icon: Package,
-        roles: ["super_admin", "superadmin", "admin_gudang", "super_admin", "admin"],
+        roles: ["super_admin", "superadmin", "admin_gudang", "admin_toko", "super_admin", "admin"],
       },
       {
         name: "Kategori",

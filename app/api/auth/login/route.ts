@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
 
     const { data: userRow, error } = await supabaseAdmin
       .from('users')
-      .select('id, email, name, role, password_hash')
+      .select(`
+        id, email, name, role, password_hash,
+        warehouse_id, store_id,
+        warehouses(name),
+        stores(name)
+      `)
       .eq('email', email)
       .maybeSingle()
 
@@ -51,7 +56,10 @@ export async function POST(request: NextRequest) {
         id: userRow.id,
         name: userRow.name,
         email: userRow.email,
-        role: userRow.role
+        role: userRow.role,
+        warehouseId: userRow.warehouse_id,
+        storeId: userRow.store_id,
+        locationName: userRow.warehouses?.name || userRow.stores?.name || "Tidak ada lokasi"
       }
     })
   } catch (error) {

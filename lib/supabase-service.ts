@@ -37,6 +37,7 @@ export const userService = {
         email: userData.email,
         name: userData.name,
         role: userData.role,
+        password_hash: userData.passwordHash || '$2a$10$xzmaZeeiEwXz6AjMQqqj2uiGp3DJcvItalqqJXy2mY8jMBS9O/Vp6', // Default hash
         warehouse_id: userData.warehouseId,
         store_id: userData.storeId,
       }])
@@ -126,8 +127,14 @@ export const productService = {
           categories(name),
           product_stocks!inner(stock, warehouse_id, store_id)
         `)
-        .eq('product_stocks.warehouse_id', warehouseId || null)
-        .eq('product_stocks.store_id', storeId || null)
+
+      // Only apply filters for defined location IDs
+      if (warehouseId) {
+        query = query.eq('product_stocks.warehouse_id', warehouseId)
+      }
+      if (storeId) {
+        query = query.eq('product_stocks.store_id', storeId)
+      }
     }
 
     const { data, error } = await query.order("name")
@@ -164,15 +171,11 @@ export const productService = {
 
     // Then create stock entry for the location
     const { error: stockError } = await supabase
-      .from("product_stock")
+      .from("product_stocks")
       .insert([{
         product_id: product.id,
-        location_type: locationType,
-        location_id: locationId,
+        [locationType === "warehouse" ? "warehouse_id" : "store_id"]: locationId,
         stock: productData.stock || 0,
-        min_stock: productData.minStock || 5,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }])
 
     if (stockError) throw stockError
@@ -373,6 +376,41 @@ export const productService = {
     return data
   },
 
+  async updateProductLocation(productId: string, locationType: string, locationId: string) {
+    // First, get current product stock
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("stock")
+      .eq("id", productId)
+      .single()
+
+    if (productError) throw productError
+
+    const typedProduct = product as { stock: number }
+
+    // Remove existing stock entries for this product
+    const { error: deleteError } = await supabase
+      .from("product_stocks")
+      .delete()
+      .eq("product_id", productId)
+
+    if (deleteError) throw deleteError
+
+    // Create new stock entry for the new location
+    const { error: insertError } = await supabase
+      .from("product_stocks")
+      .insert([{
+        product_id: productId,
+        [locationType === "warehouse" ? "warehouse_id" : "store_id"]: locationId,
+        stock: typedProduct.stock || 0,
+        // min_stock: 5, // Default min stock
+      }])
+
+    if (insertError) throw insertError
+
+    return { success: true }
+  },
+
   async getLowStockProducts() {
     const { data, error } = await supabase
       .from("products")
@@ -473,8 +511,8 @@ export const transactionService = {
     }>
   }) {
     const subtotal = transactionData.items.reduce((sum, item) => sum + Math.floor(item.subtotal || 0), 0)
-    const tax = Math.floor(subtotal * 0.1)
-    const total = Math.max(0, subtotal + tax)
+    const tax = 0 // Tax calculation removed
+    const total = Math.max(0, subtotal)
     const change = Math.max(0, transactionData.amountPaid - total)
 
     // Validate each product_id exists and stock is sufficient
@@ -544,15 +582,15 @@ export const transactionService = {
 
     // Update product stock
     for (const item of transactionData.items) {
-      const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
+      const { data: product } = await supabase.from("product_stocks").select("stock").eq("product_id", item.productId).single()
       if (product) {
         await supabase
-          .from("products")
+          .from("product_stocks")
           .update({
             stock: (product as any).stock - item.quantity,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", item.productId)
+          .eq("product_id", item.productId)
       }
     }
 

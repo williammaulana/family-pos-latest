@@ -59,8 +59,9 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, ...rest } = body
+    const { id, locationType, locationId, ...rest } = body
     if (!id) return NextResponse.json({ success: false, error: "Product ID is required" }, { status: 400 })
+
     const updates: any = {
       ...rest,
     }
@@ -76,9 +77,22 @@ export async function PUT(request: NextRequest) {
       updates.image_url = rest.imageUrl
       delete updates.imageUrl
     }
+
     const { productService } = await getServices()
-    const updated = await productService.updateProduct(id, updates)
-    return NextResponse.json({ success: true, data: updated })
+
+    // Handle location update for superadmin
+    if (locationType && locationId) {
+      // First update the product
+      const updated = await productService.updateProduct(id, updates)
+
+      // Then update the location by moving stock
+      await productService.updateProductLocation(id, locationType, locationId)
+
+      return NextResponse.json({ success: true, data: updated })
+    } else {
+      const updated = await productService.updateProduct(id, updates)
+      return NextResponse.json({ success: true, data: updated })
+    }
   } catch (error) {
     console.error("Error updating product:", error)
     return NextResponse.json({ success: false, error: "Failed to update product" }, { status: 500 })

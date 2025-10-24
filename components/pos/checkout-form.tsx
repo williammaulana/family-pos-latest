@@ -57,8 +57,8 @@ export function CheckoutForm({ items, onCheckout, isProcessing, showReceipt, tra
   }
 
   const subtotal = items.reduce((sum, item) => sum + calculateItemSubtotal(item), 0)
-  const tax = Math.floor(subtotal * (taxRate / 100)) // integer tax calculation based on taxRate
-  const beforeDiscountTotal = subtotal + tax
+  const tax = 0 // Tax removed
+  const beforeDiscountTotal = subtotal
   
   // Apply transaction-level discount
   let transactionDiscountAmount = 0
@@ -282,10 +282,6 @@ export function CheckoutForm({ items, onCheckout, isProcessing, showReceipt, tra
               <div className='flex justify-between text-sm'>
                 <span>Subtotal:</span>
                 <span>{formatCurrency(subtotal)}</span>
-              </div>
-              <div className='flex justify-between text-sm'>
-                <span>Pajak:</span>
-                <span>{formatCurrency(tax)}</span>
               </div>
               {transactionDiscount && (
                 <div className='flex justify-between text-sm text-green-600'>

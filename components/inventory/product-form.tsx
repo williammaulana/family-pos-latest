@@ -18,6 +18,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Product } from "@/types"
 import { warehouseService, storeService } from "@/lib/locations-service"
+import { useAuth } from "@/lib/auth"
 
 interface ProductFormProps {
   product?: Product | null
@@ -31,6 +32,10 @@ const categories = ["Makanan", "Minuman", "Kebersihan", "Elektronik", "Pakaian",
 const units = ["pcs", "dus", "liter", "kg", "gram", "meter", "cm", "buah", "bungkus", "botol", "kaleng", "paket"]
 
 export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: ProductFormProps) {
+  const { user } = useAuth()
+  const canEditProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canImportProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canViewOnly = user?.role === "admin_toko"
   const [warehouses, setWarehouses] = useState<any[]>([])
   const [stores, setStores] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -109,6 +114,11 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
 
     if (product) {
       productData.id = product.id
+      // For existing products, include location data if user is superadmin
+      if (user?.role === 'superadmin' || user?.role === "super_admin") {
+        productData.locationType = formData.locationType
+        productData.locationId = formData.locationId
+      }
     } else {
       // For new products, include location data
       productData.locationType = formData.locationType
@@ -243,7 +253,7 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
             </div>
           </div>
 
-          {!product && (
+          {(canEditProducts || !product) && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="locationType">Lokasi Stok *</Label>
@@ -293,7 +303,7 @@ export function ProductForm({ product, isOpen, onClose, onSave, isLoading }: Pro
             <Button type="button" variant="outline" onClick={onClose}>
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || canViewOnly}>
               {isLoading ? "Menyimpan..." : product ? "Update" : "Simpan"}
             </Button>
           </DialogFooter>

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { ProductGrid } from "@/components/pos/product-grid"
+import { ProductGrid, type ProductGridRef } from "@/components/pos/product-grid"
 import { ShoppingCart } from "@/components/pos/shopping-cart"
 import { CheckoutForm } from "@/components/pos/checkout-form"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ export default function POSPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const productGridRef = useRef<ProductGridRef>(null)
   const [cartItems, setCartItems] = useState<TransactionItem[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
@@ -140,7 +141,7 @@ export default function POSPage() {
       const calculateItemSubtotal = (item: TransactionItem) => {
         const baseSubtotal = item.price * item.quantity
         if (item.discount && item.discountType) {
-          const discountAmount = item.discountType === 'percentage' 
+          const discountAmount = item.discountType === 'percentage'
             ? (baseSubtotal * item.discount) / 100
             : item.discount
           return Math.max(0, baseSubtotal - discountAmount)
@@ -192,7 +193,7 @@ export default function POSPage() {
             total_price: (() => {
               const baseSubtotal = item.price * item.quantity
               if (item.discount && item.discountType) {
-                const discountAmount = item.discountType === 'percentage' 
+                const discountAmount = item.discountType === 'percentage'
                   ? (baseSubtotal * item.discount) / 100
                   : item.discount
                 return Math.max(0, baseSubtotal - discountAmount)
@@ -202,7 +203,7 @@ export default function POSPage() {
             discount: (() => {
               const baseSubtotal = item.price * item.quantity
               if (item.discount && item.discountType) {
-                const discountAmount = item.discountType === 'percentage' 
+                const discountAmount = item.discountType === 'percentage'
                   ? (baseSubtotal * item.discount) / 100
                   : item.discount
                 return Math.min(baseSubtotal, Math.max(0, discountAmount))
@@ -218,7 +219,7 @@ export default function POSPage() {
       }
 
       const result = await response.json()
-      
+
       if (!result.success) {
         throw new Error(result.details || "Transaction failed")
       }
@@ -248,6 +249,9 @@ export default function POSPage() {
 
       // Clear cart after successful transaction
       clearCart()
+
+      // Refetch product data to update stock
+      productGridRef.current?.refetch()
     } catch (error) {
       console.error("[v0] Transaction error:", error)
       toast({
@@ -281,7 +285,7 @@ export default function POSPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Product Grid */}
           <div className="lg:col-span-2 flex flex-col min-h-0">
-            <ProductGrid onAddToCart={addToCart} />
+            <ProductGrid ref={productGridRef} onAddToCart={addToCart} />
           </div>
 
           {/* Cart Button for Mobile */}

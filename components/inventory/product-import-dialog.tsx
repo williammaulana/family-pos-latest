@@ -14,6 +14,7 @@ import { parseCSV, parseExcel, exportToCSV, exportToExcel } from "@/lib/export-u
 // import { productService } from "@/lib/supabase-service"
 import { warehouseService, storeService } from "@/lib/locations-service"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/lib/auth"
 
 interface ProductImportDialogProps {
   isOpen: boolean
@@ -22,6 +23,8 @@ interface ProductImportDialogProps {
 }
 
 export function ProductImportDialog({ isOpen, onClose, onImportComplete }: ProductImportDialogProps) {
+  const { user } = useAuth()
+  const canImportProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [previewData, setPreviewData] = useState<string[][] | null>(null)
@@ -401,7 +404,7 @@ export function ProductImportDialog({ isOpen, onClose, onImportComplete }: Produ
             </Button>
             <Button
               onClick={handleImport}
-              disabled={!file || isProcessing || errors.length > 0 || !locationId}
+              disabled={!file || isProcessing || errors.length > 0 || !locationId || !canImportProducts}
               className="order-1 sm:order-2"
             >
               {isProcessing ? (

@@ -20,6 +20,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user } = useAuth()
   const isMobile = useMobile()
 
+  console.log('====================================');
+  console.log(user);
+  console.log('====================================');
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {!isMobile && <Sidebar />}
@@ -47,6 +51,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 <div className="text-right hidden sm:block">
                   <p className="font-medium text-xs md:text-sm truncate max-w-20 md:max-w-none">{user?.name}</p>
                   <p className="text-[10px] md:text-xs text-gray-600 capitalize">{user?.role.replace("_", " ")}</p>
+                  {user?.locationName && (
+                    <p className="text-[10px] md:text-xs text-gray-500 truncate max-w-20 md:max-w-none">{user.locationName}</p>
+                  )}
                 </div>
               </div>
             </div>

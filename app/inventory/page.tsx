@@ -12,6 +12,7 @@ import { ProductImportDialog } from "@/components/inventory/product-import-dialo
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Package, AlertTriangle, TrendingUp, Download, Upload } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
@@ -32,6 +33,8 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<any[]>([])
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [selectedLocation, setSelectedLocation] = useState('Semua')
+  const [locations, setLocations] = useState<any[]>([])
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -47,12 +50,45 @@ export default function InventoryPage() {
     }
   }, [user, isLoading, router, toast])
 
+  // Check if user can perform CRUD operations
+  const canEditProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canImportProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canViewOnly = user?.role === "admin_toko"
+
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch locations for Super Admin
+        if (user?.role === 'superadmin') {
+          const locationsRes = await fetch('/api/locations')
+          const locationsJson = await locationsRes.json()
+          const locationOptions = [
+            { id: 'Semua', name: 'Semua Lokasi', type: 'all' },
+            ...(locationsJson.data || []).map((loc: any) => ({
+              id: `${loc.type}:${loc.id}`,
+              name: loc.name,
+              type: loc.type,
+            })),
+          ]
+          setLocations(locationOptions)
+        }
+
+        // Fetch products based on location filter
         const params = new URLSearchParams()
-        if (user?.role !== 'superadmin') {
-          // For non-superadmin users, filter by their assigned location
+        if (user?.role === 'superadmin') {
+          // For Super Admin, apply selected location filter
+          if (selectedLocation !== 'Semua') {
+            const [type, id] = selectedLocation.split(':')
+            if (type === 'warehouse') params.append('warehouseId', id)
+            if (type === 'store') params.append('storeId', id)
+          }
+        } else if (user?.role === 'admin_toko') {
+          // For admin_toko, only show products from their assigned store
+          if (user?.storeId) {
+            params.append('storeId', user.storeId)
+          }
+        } else {
+          // For other roles (admin_gudang, admin, etc.), filter by their assigned location
           if (user?.warehouseId) {
             params.append('warehouseId', user.warehouseId)
           }
@@ -60,21 +96,22 @@ export default function InventoryPage() {
             params.append('storeId', user.storeId)
           }
         }
+
         const url = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
         const res = await fetch(url)
         const json = await res.json()
         setProducts(json.data || [])
       } catch (error) {
-        console.error("Error fetching products:", error)
+        console.error("Error fetching data:", error)
       } finally {
         setStatsLoading(false)
       }
     }
 
     if (user && user.role !== "kasir") {
-      fetchProducts()
+      fetchData()
     }
-  }, [user, refreshTrigger])
+  }, [user, refreshTrigger, selectedLocation])
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product)
@@ -342,6 +379,21 @@ export default function InventoryPage() {
             <p className="text-sm text-muted-foreground">Kelola produk dan stok inventory</p>
           </div>
           <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+            {/* Location Filter for Super Admin */}
+            {user?.role === 'superadmin' || user?.role === "super_admin" && (
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Pilih lokasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent">
@@ -355,14 +407,20 @@ export default function InventoryPage() {
                 <DropdownMenuItem onClick={() => handleExportProducts("json")}>Export JSON</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} size="sm">
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </Button>
-            <Button onClick={() => setIsProductFormOpen(true)} size="sm" className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Produk
-            </Button>
+            {canEditProducts && !canViewOnly && (
+              <>
+                {canImportProducts && (
+                  <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} size="sm">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                )}
+                <Button onClick={() => setIsProductFormOpen(true)} size="sm" className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Produk
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -374,6 +432,7 @@ export default function InventoryPage() {
             onAdjustStock={handleAdjustStock}
             onViewProduct={handleViewProduct}
             refreshTrigger={refreshTrigger}
+            selectedLocation={selectedLocation}
           />
         </div>
 

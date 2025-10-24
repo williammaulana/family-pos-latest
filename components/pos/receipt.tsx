@@ -264,14 +264,10 @@ export function Receipt({
               <span>Subtotal:</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Pajak (10%):</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
             {transactionDiscount && (
               <div className="flex justify-between text-sm text-green-600">
                 <span>Diskon Transaksi ({transactionDiscount.type === 'percentage' ? `${transactionDiscount.value}%` : formatCurrency(transactionDiscount.value)}):</span>
-                <span>-{formatCurrency(transactionDiscount.type === 'percentage' ? (subtotal + tax) * transactionDiscount.value / 100 : transactionDiscount.value)}</span>
+                <span>-{formatCurrency(transactionDiscount.type === 'percentage' ? subtotal * transactionDiscount.value / 100 : transactionDiscount.value)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-base border-t border-gray-400 pt-2">

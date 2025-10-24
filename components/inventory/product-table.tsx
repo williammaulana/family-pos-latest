@@ -18,6 +18,7 @@ interface ProductTableProps {
   onAdjustStock: (productId: string, adjustment: number) => void
   onViewProduct?: (product: Product) => void
   refreshTrigger?: number
+  selectedLocation?: string
 }
 
 export function ProductTable({
@@ -26,14 +27,19 @@ export function ProductTable({
   onAdjustStock,
   onViewProduct,
   refreshTrigger,
+  selectedLocation,
 }: ProductTableProps) {
   const { user } = useAuth()
+  const canEditProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canImportProducts = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin"
+  const canViewOnly = user?.role === "admin_toko"
+  const canAdjustStock = user?.role === "superadmin" || user?.role === "admin_gudang" || user?.role === "super_admin" || user?.role === "admin" || user?.role === "admin_toko"
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Semua')
-  const [selectedLocation, setSelectedLocation] = useState('Semua')
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<string[]>(['Semua'])
-  const [locations, setLocations] = useState<any[]>([])
+
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -41,46 +47,40 @@ export function ProductTable({
       try {
         const params = new URLSearchParams()
 
-        if (user?.role !== 'superadmin') {
+        if (user?.role === 'superadmin') {
+          // For Super Admin, apply selected location filter
+          if (selectedLocation && selectedLocation !== 'Semua') {
+            const [type, id] = selectedLocation.split(':')
+            if (type === 'warehouse') params.append('warehouseId', id)
+            if (type === 'store') params.append('storeId', id)
+          }
+        } else if (user?.role === 'admin_toko') {
+          // For admin_toko, only show products from their assigned store
+          if (user?.storeId) {
+            params.append('storeId', user.storeId)
+          }
+        } else {
+          // For other roles (admin_gudang, admin, etc.), filter by their assigned location
           if (user?.warehouseId) params.append('warehouseId', user.warehouseId)
           if (user?.storeId) params.append('storeId', user.storeId)
-        } else if (selectedLocation !== 'Semua') {
-          const [type, id] = selectedLocation.split(':')
-          if (type === 'warehouse') params.append('warehouseId', id)
-          if (type === 'store') params.append('storeId', id)
         }
 
         const productsUrl = params.toString()
           ? `/api/products?${params.toString()}`
           : '/api/products'
 
-        const [productsRes, categoriesRes, locationsRes] = await Promise.all([
+        const [productsRes, categoriesRes] = await Promise.all([
           fetch(productsUrl),
           fetch('/api/categories'),
-          user?.role === 'superadmin'
-            ? fetch('/api/locations')
-            : Promise.resolve({ json: () => ({ data: [] }) }),
         ])
 
-        const [productsJson, categoriesJson, locationsJson] = await Promise.all([
+        const [productsJson, categoriesJson] = await Promise.all([
           productsRes.json(),
           categoriesRes.json(),
-          locationsRes.json(),
         ])
 
         setProducts(productsJson.data || [])
         setCategories(['Semua', ...(categoriesJson.data || []).map((c: any) => c.name)])
-        if (user?.role === 'superadmin') {
-          const locationOptions = [
-            { id: 'Semua', name: 'Semua Lokasi', type: 'all' },
-            ...(locationsJson.data || []).map((loc: any) => ({
-              id: `${loc.type}:${loc.id}`,
-              name: loc.name,
-              type: loc.type,
-            })),
-          ]
-          setLocations(locationOptions)
-        }
       } catch (err) {
         console.error('Error fetching products:', err)
       } finally {
@@ -140,21 +140,7 @@ export function ProductTable({
             </SelectContent>
           </Select>
 
-          {/* Location Filter for Superadmin */}
-          {user?.role === 'superadmin' && (
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Pilih lokasi" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+
         </div>
 
         {/* Table Section */}
@@ -233,23 +219,27 @@ export function ProductTable({
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end flex-wrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onAdjustStock(product.id, -1)}
-                            disabled={product.stock === 0}
-                            className="h-8 px-2"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onAdjustStock(product.id, 1)}
-                            className="h-8 px-2"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                          {canAdjustStock && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onAdjustStock(product.id, -1)}
+                                disabled={product.stock === 0}
+                                className="h-8 px-2"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onAdjustStock(product.id, 1)}
+                                className="h-8 px-2"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                           {onViewProduct && (
                             <Button
                               variant="ghost"
@@ -260,22 +250,26 @@ export function ProductTable({
                               <Eye className="h-3 w-3" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEditProduct(product)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDeleteProduct(product.id)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {canEditProducts && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onEditProduct(product)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDeleteProduct(product.id)}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

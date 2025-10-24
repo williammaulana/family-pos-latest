@@ -38,8 +38,8 @@ export function ShoppingCart({ items, onUpdateQuantity, onRemoveItem, onClearCar
   }
 
   const subtotal = items.reduce((sum, item) => sum + calculateItemSubtotal(item), 0)
-  const tax = subtotal * 0.1 // 10% tax
-  const total = subtotal + tax
+  const tax = 0 // Tax removed
+  const total = subtotal
 
   const handleDiscountSubmit = () => {
     if (selectedItem && onUpdateDiscount) {
@@ -161,10 +161,6 @@ export function ShoppingCart({ items, onUpdateQuantity, onRemoveItem, onClearCar
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
                     <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Pajak (10%):</span>
-                    <span>{formatCurrency(tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">

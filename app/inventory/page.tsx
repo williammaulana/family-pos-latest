@@ -31,6 +31,7 @@ export default function InventoryPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<string[]>(['Semua'])
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [statsLoading, setStatsLoading] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('Semua')
@@ -59,7 +60,7 @@ export default function InventoryPage() {
     const fetchData = async () => {
       try {
         // Fetch locations for Super Admin
-        if (user?.role === 'superadmin') {
+        if (user?.role === 'superadmin' || user?.role === 'super_admin') {
           const locationsRes = await fetch('/api/locations')
           const locationsJson = await locationsRes.json()
           const locationOptions = [
@@ -75,7 +76,7 @@ export default function InventoryPage() {
 
         // Fetch products based on location filter
         const params = new URLSearchParams()
-        if (user?.role === 'superadmin') {
+        if (user?.role === 'superadmin' || user?.role === 'super_admin') {
           // For Super Admin, apply selected location filter
           if (selectedLocation !== 'Semua') {
             const [type, id] = selectedLocation.split(':')
@@ -98,9 +99,18 @@ export default function InventoryPage() {
         }
 
         const url = params.toString() ? `/api/products?${params.toString()}` : '/api/products'
-        const res = await fetch(url)
-        const json = await res.json()
-        setProducts(json.data || [])
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch(url),
+          fetch('/api/categories'),
+        ])
+
+        const [productsJson, categoriesJson] = await Promise.all([
+          productsRes.json(),
+          categoriesRes.json(),
+        ])
+
+        setProducts(productsJson.data || [])
+        setCategories(['Semua', ...(categoriesJson.data || []).map((c: any) => c.name)])
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -427,12 +437,13 @@ export default function InventoryPage() {
         {/* Product Table */}
         <div className="flex-1 min-h-0 overflow-x-auto">
           <ProductTable
+            products={products}
+            categories={categories}
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
             onAdjustStock={handleAdjustStock}
             onViewProduct={handleViewProduct}
-            refreshTrigger={refreshTrigger}
-            selectedLocation={selectedLocation}
+            isLoading={statsLoading}
           />
         </div>
 

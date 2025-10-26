@@ -17,6 +17,10 @@ export default function DashboardPage() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [isStatsLoading, setIsStatsLoading] = useState(true)
 
+  console.log('====================================');
+  console.log('dashboardStats', dashboardStats);
+  console.log('====================================');
+
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/")

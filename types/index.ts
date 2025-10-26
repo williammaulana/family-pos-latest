@@ -15,6 +15,7 @@ export interface User {
   warehouseId?: string
   storeId?: string
   locationName?: string
+  passwordHash?: string
 }
 
 export interface Product {

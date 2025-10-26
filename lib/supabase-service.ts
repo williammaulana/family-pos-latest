@@ -10,7 +10,7 @@ export const userService = {
       .order("created_at", { ascending: false })
 
     if (error) throw error
-    return data?.map((user) => ({
+    return data?.map((user: any) => ({
       ...user,
       locationName: user.warehouses?.name || user.stores?.name || "Tidak ada lokasi",
     }))
@@ -140,7 +140,7 @@ export const productService = {
     const { data, error } = await query.order("name")
 
     if (error) throw error
-    return data?.map((product) => ({
+    return data?.map((product: any) => ({
       ...product,
       category: product.categories?.name || "Unknown",
       // Use location-specific stock if filtering by location
@@ -423,9 +423,9 @@ export const productService = {
     if (error) throw error
 
     // Filter products where stock is less than or equal to min_stock
-    const lowStockProducts = data?.filter((product) => product.stock <= product.min_stock) || []
+    const lowStockProducts = data?.filter((product: any) => product.stock <= product.min_stock) || []
 
-    return lowStockProducts.map((product) => ({
+    return lowStockProducts.map((product: any) => ({
       ...product,
       category: product.categories?.name || "Unknown",
     }))
@@ -653,30 +653,38 @@ export const dashboardService = {
       .lt("created_at", `${yesterday}T23:59:59`)
 
     // Get total stock
-    const { data: products } = await supabase.from("products").select("stock")
+    const { data: products } = await supabase.from("products_stocks").select("stock")
 
     // Calculate stats
-    const todayTotal = todayTransactions?.reduce((sum, t: any) => sum + (t.total_amount || 0), 0) || 0
-    const yesterdayTotal = yesterdayTransactions?.reduce((sum, t: any) => sum + (t.total_amount || 0), 0) || 0
+    const todayTotal = todayTransactions?.reduce((sum: any, t: any) => sum + (t.total_amount || 0), 0) || 0
+    const yesterdayTotal = yesterdayTransactions?.reduce((sum: any, t: any) => sum + (t.total_amount || 0), 0) || 0
 
     const todayProductsSold =
       todayTransactions?.reduce(
-        (sum, t: any) =>
+        (sum: any, t: any) =>
           sum +
           ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
     const yesterdayProductsSold =
       yesterdayTransactions?.reduce(
-        (sum, t: any) =>
+        (sum: any, t: any) =>
           sum +
           ((t.transaction_items as any[])?.reduce((itemSum, item: any) => itemSum + (item.quantity || 0), 0) || 0),
         0,
       ) || 0
 
-    const totalStock = products?.reduce((sum, p: any) => sum + (p.stock || 0), 0) || 0
+    console.log('====================================');
+    console.log('products', products);
+    console.log('====================================');
+
+    const totalStock = products?.reduce((sum: any, p: any) => sum + (p.stock || 0), 0) || 0
     const todayTransactionCount = todayTransactions?.length || 0
     const yesterdayTransactionCount = yesterdayTransactions?.length || 0
+
+    console.log('====================================');
+    console.log('totalStock', totalStock);
+    console.log('====================================');
 
     // Calculate growth percentages
     const salesGrowth = yesterdayTotal > 0 ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100 : 0
@@ -715,7 +723,7 @@ export const reportsService = {
 
     // Group by date
     const salesByDate = data?.reduce(
-      (acc, transaction) => {
+      (acc: any, transaction: any) => {
         const date = (transaction as any).created_at.split("T")[0]
         if (!acc[date]) {
           acc[date] = { totalSales: 0, totalTransactions: 0 }
@@ -751,7 +759,7 @@ export const reportsService = {
 
     // Group by product
     const productStats = data?.reduce(
-      (acc, item) => {
+      (acc: any, item: any) => {
         const anyItem: any = item
         const productId = anyItem.product_id
         if (!acc[productId]) {

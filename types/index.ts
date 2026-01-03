@@ -16,6 +16,7 @@ export interface User {
   storeId?: string
   locationName?: string
   passwordHash?: string
+  password?: string
 }
 
 export interface Product {

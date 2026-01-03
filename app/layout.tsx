@@ -6,6 +6,7 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { SettingsProvider } from "@/lib/settings-context"
 import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata: Metadata = {
   title: "Family Store - POS & Inventory",
@@ -25,6 +26,7 @@ export default function RootLayout({
           <SettingsProvider>
             {children}
             <Toaster />
+            <Analytics />
           </SettingsProvider>
         </AuthProvider>
       </body>

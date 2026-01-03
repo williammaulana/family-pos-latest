@@ -6,7 +6,7 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { SettingsProvider } from "@/lib/settings-context"
 import { Toaster } from "@/components/ui/toaster"
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Family Store - POS & Inventory",

@@ -63,7 +63,7 @@ export function RecentTransactions() {
             <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{transaction.code}</span>
+                  <span className="font-medium">{transaction.transaction_code}</span>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     {transaction.status === "completed" ? "Completed" : transaction.status}
                   </Badge>
@@ -72,7 +72,7 @@ export function RecentTransactions() {
                 <p className="text-xs text-muted-foreground">{transaction.items?.length || 0} items</p>
               </div>
               <div className="text-right">
-                <p className="font-medium">{formatCurrency(transaction.total)}</p>
+                <p className="font-medium">{formatCurrency(transaction.total_amount)}</p>
                 <p className="text-sm text-muted-foreground">{formatTime(new Date(transaction.created_at))}</p>
               </div>
             </div>

@@ -671,7 +671,7 @@ export const dashboardService = {
       .lt("created_at", `${yesterday}T23:59:59`)
 
     // Get total stock
-    const { data: products } = await supabase.from("products_stocks").select("stock")
+    const { data: products } = await supabase.from("product_stocks").select("stock")
 
     // Calculate stats
     const todayTotal = todayTransactions?.reduce((sum: any, t: any) => sum + (t.total_amount || 0), 0) || 0
@@ -692,17 +692,9 @@ export const dashboardService = {
         0,
       ) || 0
 
-    console.log('====================================');
-    console.log('products', products);
-    console.log('====================================');
-
     const totalStock = products?.reduce((sum: any, p: any) => sum + (p.stock || 0), 0) || 0
     const todayTransactionCount = todayTransactions?.length || 0
     const yesterdayTransactionCount = yesterdayTransactions?.length || 0
-
-    console.log('====================================');
-    console.log('totalStock', totalStock);
-    console.log('====================================');
 
     // Calculate growth percentages
     const salesGrowth = yesterdayTotal > 0 ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100 : 0

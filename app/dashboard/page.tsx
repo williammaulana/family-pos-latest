@@ -7,8 +7,9 @@ import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentTransactions } from "@/components/dashboard/recent-transactions"
 import { LowStockAlert } from "@/components/dashboard/low-stock-alert"
 import { formatCurrency } from "@/lib/utils"
-import { DollarSign, ShoppingCart, Package, TrendingUp } from "lucide-react"
+import { DollarSign, ShoppingCart, Package, TrendingUp, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import type { DashboardStats } from "@/types"
 
 export default function DashboardPage() {
@@ -16,10 +17,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [isStatsLoading, setIsStatsLoading] = useState(true)
-
-  console.log('====================================');
-  console.log('dashboardStats', dashboardStats);
-  console.log('====================================');
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -45,6 +43,19 @@ export default function DashboardPage() {
     }
   }, [user])
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      const res = await fetch('/api/dashboard/stats')
+      const json = await res.json()
+      setDashboardStats(json.data)
+    } catch (error) {
+      console.error("Error refreshing dashboard stats:", error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -63,6 +74,19 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full space-y-6">
+        {/* Dashboard Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Menyegarkan...' : 'Segarkan Data'}
+          </Button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {isStatsLoading ? (

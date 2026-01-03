@@ -1,76 +1,94 @@
 import { supabase } from "./supabase"
 import type { Product, User, DashboardStats } from "@/types"
 
+// Helper function to get auth token
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token || null
+  } catch (error) {
+    console.error('Error getting auth token:', error)
+    return null
+  }
+}
+
+// Helper function to make authenticated API calls
+async function apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
+  const token = await getAuthToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(endpoint, {
+    ...options,
+    headers,
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || `HTTP ${response.status}`)
+  }
+
+  return response.json()
+}
+
 // User Services
 export const userService = {
   async getUsers() {
     const { data, error } = await supabase
       .from("users")
-      .select("*, warehouses(name), stores(name)")
-      .order("created_at", { ascending: false })
+      .select(`
+        *,
+        warehouses:warehouse_id(name),
+        stores:store_id(name)
+      `)
+      .order("name")
 
     if (error) throw error
+
     return data?.map((user: any) => ({
-      ...user,
-      locationName: user.warehouses?.name || user.stores?.name || "Tidak ada lokasi",
-    }))
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      warehouseId: user.warehouse_id,
+      storeId: user.store_id,
+      locationName: user.warehouses?.name || user.stores?.name || null,
+      passwordHash: user.password_hash,
+    })) || []
   },
 
   async getUserById(id: string) {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*, warehouses(name), stores(name)")
-      .eq("id", id)
-      .single()
-
-    if (error) throw error
-    return {
-      ...data,
-      locationName: data.warehouses?.name || data.stores?.name || "Tidak ada lokasi",
-    }
+    const result = await apiCall(`/api/users/${id}`)
+    return result.data
   },
 
   async createUser(userData: Omit<User, "id" | "createdAt" | "updatedAt">) {
-    const { data, error } = await supabase
-      .from("users")
-      .insert([{
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        password_hash: userData.passwordHash || '$2a$10$xzmaZeeiEwXz6AjMQqqj2uiGp3DJcvItalqqJXy2mY8jMBS9O/Vp6', // Default hash
-        warehouse_id: userData.warehouseId,
-        store_id: userData.storeId,
-      }])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+    const result = await apiCall('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    })
+    return result.data
   },
 
   async updateUser(id: string, userData: Partial<User>) {
-    const { data, error } = await supabase
-      .from("users")
-      .update({
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        warehouse_id: userData.warehouseId,
-        store_id: userData.storeId,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+    const result = await apiCall('/api/users', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...userData }),
+    })
+    return result.data
   },
 
   async deleteUser(id: string) {
-    const { error } = await supabase.from("users").delete().eq("id", id)
-
-    if (error) throw error
+    await apiCall('/api/users', {
+      method: 'DELETE',
+      body: JSON.stringify({ id }),
+    })
   },
 }
 
@@ -737,9 +755,9 @@ export const reportsService = {
 
     return Object.entries(salesByDate || {}).map(([date, stats]) => ({
       date,
-      totalSales: stats.totalSales,
-      totalTransactions: stats.totalTransactions,
-      averageTransaction: stats.totalSales / stats.totalTransactions,
+      totalSales: (stats as any).totalSales,
+      totalTransactions: (stats as any).totalTransactions,
+      averageTransaction: (stats as any).totalSales / (stats as any).totalTransactions,
     }))
   },
 

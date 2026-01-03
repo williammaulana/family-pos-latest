@@ -83,6 +83,7 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
       name: formData.name,
       email: formData.email,
       role: formData.role,
+      password: formData.password,
     }
 
     // Add location fields
@@ -149,7 +150,7 @@ export function UserForm({ user, isOpen, onClose, onSave, isLoading }: UserFormP
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="admin_toko">Admin Toko</SelectItem>
                 <SelectItem value="admin_gudang">Admin Gudang</SelectItem>
-                <SelectItem value="superadmin">Super Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
